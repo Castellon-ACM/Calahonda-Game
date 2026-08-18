@@ -61,6 +61,18 @@
     transform: rotateY(180deg);
   }
 
+  /* Versión grande del logo (pantalla de login) */
+  .coin-wrap-lg {
+    margin-bottom: 32px;
+  }
+  .coin-lg {
+    width: 170px;
+    height: 170px;
+  }
+  .coin-lg .coin-face {
+    font-size: 68px;
+  }
+
   .brand {
     color: #f4d98a;
     font-size: 26px;
@@ -152,13 +164,12 @@
 
   <!-- Pantalla LOGIN -->
   <div id="login-screen" class="screen">
-    <div class="coin-wrap">
-      <div class="coin">
+    <div class="coin-wrap coin-wrap-lg">
+      <div class="coin coin-lg">
         <div class="coin-face front">🌴</div>
         <div class="coin-face back">🍾</div>
       </div>
     </div>
-    <div class="brand">ALCOHOL 365</div>
 
     <div class="card">
       <h1>Iniciar sesión</h1>
