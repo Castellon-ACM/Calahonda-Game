@@ -84,7 +84,7 @@
         const fresh = getCurrentUserData();
         let payout = 0;
         if (winner === selectedTurtle) {
-          payout = Math.round(betAmount * 3.8);
+          payout = Math.round(betAmount * 3);
           fresh.coins += payout;
         }
         saveCurrentUserData(fresh);
