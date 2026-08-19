@@ -405,6 +405,14 @@
         saveCurrentUserData(fresh);
         updateAllBalances(fresh.coins);
 
+        // Guardar en el historial + refrescar hielo/fuego
+        pushRouletteHistory(resultNumber);
+        renderRouletteHistory();
+        updateWheelHotCold();
+
+        // Recordar esta apuesta para poder repetirla
+        lastBetSlip = activeBets.slice();
+
         const label = colorLabelOf(colorOf(resultNumber));
         document.getElementById('wheel-result-number').textContent = 'Salió ' + resultNumber + ' (' + label + ')';
 
@@ -416,6 +424,31 @@
         spinBtn.disabled = false;
         document.getElementById('roulette-table').style.pointerEvents = 'auto';
       }, 4600);
+    });
+
+    // --- Repetir la última apuesta jugada ---
+    document.getElementById('repeat-bet-btn').addEventListener('click', function () {
+      const resultEl = document.getElementById('casino-result');
+      if (lastBetSlip.length === 0) {
+        resultEl.textContent = 'Todavía no hay ninguna apuesta anterior que repetir';
+        return;
+      }
+      const data = getCurrentUserData();
+      const total = lastBetSlip.reduce(function (s, b) { return s + b.amount; }, 0);
+      if (total > data.coins) {
+        resultEl.textContent = 'No tienes suficientes monedas para repetir esa apuesta';
+        return;
+      }
+      betSlip = lastBetSlip.map(function (b) {
+        return {
+          type: b.type,
+          value: Array.isArray(b.value) ? b.value.slice() : b.value,
+          label: b.label,
+          amount: b.amount
+        };
+      });
+      resultEl.textContent = '';
+      renderBetSlip();
     });
 
     // =====================================================================
