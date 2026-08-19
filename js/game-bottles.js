@@ -156,6 +156,7 @@
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
+      pushToLeaderboard(currentUser, data.inventory);
 
       const claimBtn = document.getElementById('claim-btn');
       if (data.lastClaim === todayStr()) {
@@ -244,6 +245,7 @@
         fresh.inventory[winner.name] = (fresh.inventory[winner.name] || 0) + 1;
         saveCurrentUserData(fresh);
         renderInventory(fresh.inventory);
+        pushToLeaderboard(currentUser, fresh.inventory);
         document.getElementById('spin-result').textContent = '¡Has ganado ' + winner.name + '!';
         spinBtn.disabled = false;
       }, 4300);
