@@ -35,6 +35,7 @@
       document.getElementById('tab-home').classList.remove('hidden');
       document.getElementById('tab-casino').classList.add('hidden');
       document.getElementById('tab-event').classList.add('hidden');
+      document.getElementById('tab-support').classList.add('hidden');
 
       renderGame();
     }
@@ -47,8 +48,10 @@
         document.getElementById('tab-home').classList.toggle('hidden', tab !== 'home');
         document.getElementById('tab-casino').classList.toggle('hidden', tab !== 'casino');
         document.getElementById('tab-event').classList.toggle('hidden', tab !== 'event');
+        document.getElementById('tab-support').classList.toggle('hidden', tab !== 'support');
         if (tab === 'casino') renderCasino();
         if (tab === 'event') renderEventTab();
+        if (tab === 'support') renderSupportTab();
       });
     });
 
