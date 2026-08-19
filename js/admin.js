@@ -37,6 +37,15 @@ const ADMIN_PASS = 'papaplaya';
         <!-- Fuente de datos activa -->
         <div id="admin-source-badge" style="font-size:11px;color:#aaa;margin-bottom:8px;text-align:right"></div>
 
+        <!-- ── DAR MONEDAS A TODOS ── -->
+        <div style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0;border:1px solid #f5c51833">
+          <div style="color:#f5c518;font-weight:700;margin-bottom:10px">🎁 Dar monedas a TODOS</div>
+          <div style="color:#aaa;font-size:12px;margin-bottom:8px">Se añadirán a todos los jugadores. Al entrar al juego verán un popup de regalo.</div>
+          <input type="number" id="admin-gift-all-input" placeholder="cantidad de monedas" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
+          <button type="button" class="btn" id="admin-gift-all-btn" style="width:100%;padding:11px;font-size:14px">🎁 Enviar regalo a todos</button>
+          <div id="admin-gift-all-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
+        </div>
+
         <!-- Lista de usuarios -->
         <div style="color:#f5c518;font-weight:700;margin:16px 0 8px">👥 Todos los usuarios</div>
         <div id="admin-user-list">Cargando...</div>
@@ -53,38 +62,43 @@ const ADMIN_PASS = 'papaplaya';
           <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px"></div>
           <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:12px"></div>
 
-          <!-- Dar monedas -->
+          <!-- Dar / quitar monedas — botones en vertical -->
           <div style="margin-bottom:12px">
-            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Dar / quitar monedas</div>
-            <div style="display:flex;gap:8px">
-              <input type="number" id="admin-coins-input" placeholder="cantidad" style="flex:1;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:8px;font-size:14px">
-              <button type="button" class="btn" id="admin-give-coins-btn" style="padding:8px 14px;font-size:13px">✅ Dar</button>
-              <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="padding:8px 14px;font-size:13px">❌ Quitar</button>
-            </div>
+            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
+            <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
+            <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;padding:11px;font-size:14px;margin-bottom:6px">✅ Dar monedas</button>
+            <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;padding:11px;font-size:14px">❌ Quitar monedas</button>
           </div>
 
-          <!-- Cambiar contraseña (solo usuarios locales) -->
-          <div style="margin-bottom:12px" id="admin-pass-section">
-            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Cambiar contraseña <span style="color:#666">(solo si el usuario está en este dispositivo)</span></div>
-            <div style="display:flex;gap:8px">
-              <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="flex:1;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:8px;font-size:14px">
-              <button type="button" class="btn" id="admin-change-pass-btn" style="padding:8px 14px;font-size:13px">💾 Guardar</button>
-            </div>
+          <!-- Cambiar contraseña -->
+          <div style="margin-bottom:12px">
+            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#666">(solo si está en este dispositivo)</span></div>
+            <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
+            <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;padding:11px;font-size:14px">💾 Guardar contraseña</button>
           </div>
 
           <!-- Inventario -->
           <div style="color:#aaa;font-size:12px;margin-bottom:6px">Inventario</div>
-          <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto"></div>
+          <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;margin-bottom:14px"></div>
 
           <!-- Acciones peligrosas -->
-          <div style="display:flex;gap:8px;margin-top:14px">
-            <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;flex:1">🚫 Banear usuario</button>
-            <button type="button" class="btn logout-btn" id="admin-delete-btn" style="flex:1">🗑️ Eliminar cuenta</button>
-          </div>
+          <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;width:100%;padding:11px;margin-bottom:6px">🚫 Banear usuario</button>
+          <button type="button" class="btn logout-btn" id="admin-delete-btn" style="width:100%;padding:11px">🗑️ Eliminar cuenta</button>
+
           <div id="admin-modal-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
         </div>
 
       </div>
+    </div>
+  </div>
+
+  <!-- Popup regalo del admin -->
+  <div id="admin-gift-popup" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+    <div style="background:#1a1505;border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;border:2px solid #f5c518">
+      <div style="font-size:48px;margin-bottom:12px">🎁</div>
+      <div style="color:#f5c518;font-weight:700;font-size:18px;margin-bottom:8px">¡Regalo del administrador!</div>
+      <div id="admin-gift-popup-text" style="color:#ccc;font-size:15px;margin-bottom:20px"></div>
+      <button type="button" class="btn" id="admin-gift-popup-ok" style="width:100%;padding:13px;font-size:15px">🪙 ¡Recibir!</button>
     </div>
   </div>
   `;
@@ -93,9 +107,6 @@ const ADMIN_PASS = 'papaplaya';
 
 // ── Variables de estado del admin ────────────────────────────────────
 let adminSelectedUser = null;
-
-// Cache de todos los usuarios cargados (mezcla Firestore + local)
-// Estructura: { username: { coins, inventory, value, email, banned, source } }
 let adminAllUsers = {};
 
 // ── Utilidades ───────────────────────────────────────────────────────
@@ -112,9 +123,15 @@ function adminShowMsg(text, ok) {
   setTimeout(function () { el.textContent = ''; }, 3000);
 }
 
+function adminShowGiftAllMsg(text, ok) {
+  const el = document.getElementById('admin-gift-all-msg');
+  el.textContent = text;
+  el.style.color = ok ? '#4caf50' : '#f44336';
+  setTimeout(function () { el.textContent = ''; }, 4000);
+}
+
 // ── Cargar TODOS los usuarios (Firestore + localStorage) ─────────────
 async function adminLoadAllUsers() {
-  // 1. Empezamos con los usuarios locales de este dispositivo
   const localUsers = UserStore.load();
   const merged = {};
 
@@ -131,8 +148,6 @@ async function adminLoadAllUsers() {
     };
   });
 
-  // 2. Añadimos / sobreescribimos con los datos de Firestore (ranking global)
-  //    Firestore tiene inventory y value de TODOS los jugadores que han jugado alguna vez
   if (typeof db !== 'undefined' && db) {
     try {
       const snap = await db.collection('leaderboard').get();
@@ -141,14 +156,11 @@ async function adminLoadAllUsers() {
         const u = d.username;
         if (!u) return;
         if (merged[u]) {
-          // Ya existe en local → actualizar inventory y value desde Firestore,
-          // pero conservar coins, email, password y banned del local
           merged[u].inventory = d.inventory || merged[u].inventory;
           merged[u].value = d.value || merged[u].value;
           merged[u].source = 'local+firestore';
           if (d.banned) merged[u].banned = true;
         } else {
-          // Solo existe en Firestore (otro dispositivo)
           merged[u] = {
             coins: d.coins || 0,
             inventory: d.inventory || {},
@@ -161,7 +173,6 @@ async function adminLoadAllUsers() {
         }
       });
 
-      // 3. También miramos la colección 'users' si existe (persistencia global de cuentas)
       try {
         const usersSnap = await db.collection('users').get();
         usersSnap.docs.forEach(function (doc) {
@@ -186,9 +197,7 @@ async function adminLoadAllUsers() {
             };
           }
         });
-      } catch (e) {
-        // La colección 'users' puede no existir todavía, es normal
-      }
+      } catch (e) {}
 
       document.getElementById('admin-source-badge').textContent = '🌐 Datos cargados desde Firestore + local';
     } catch (e) {
@@ -247,7 +256,6 @@ function adminRenderUserList(filter) {
     return;
   }
 
-  // Ordenar: primero los que tienen más valor de colección
   keys.sort(function (a, b) {
     return (adminAllUsers[b].value || 0) - (adminAllUsers[a].value || 0);
   });
@@ -270,9 +278,7 @@ function adminRenderUserList(filter) {
         '<div style="font-size:12px;color:#aaa">🪙 ' + coins.toLocaleString() + ' · ⭐ ' + (u.value || 0) + ' pts · 🎁 ' + invCount + ' items</div>' +
       '</div>' +
       '<div style="color:#555;font-size:18px">›</div>';
-    row.addEventListener('click', function () {
-      adminOpenUserModal(username);
-    });
+    row.addEventListener('click', function () { adminOpenUserModal(username); });
     listEl.appendChild(row);
   });
 }
@@ -300,13 +306,9 @@ function adminOpenUserModal(username) {
 
   const invEl = document.getElementById('admin-modal-inventory');
   const invKeys = Object.keys(inventory);
-  if (invKeys.length === 0) {
-    invEl.textContent = '(colección vacía)';
-  } else {
-    invEl.innerHTML = invKeys.map(function (item) {
-      return '<div>' + item + ': <b>' + inventory[item] + '</b></div>';
-    }).join('');
-  }
+  invEl.innerHTML = invKeys.length === 0
+    ? '(colección vacía)'
+    : invKeys.map(function (item) { return '<div>' + item + ': <b>' + inventory[item] + '</b></div>'; }).join('');
 
   document.getElementById('admin-user-modal').classList.remove('hidden');
   document.getElementById('admin-modal-msg').textContent = '';
@@ -318,7 +320,6 @@ async function adminPersistUser(username) {
   const u = adminAllUsers[username];
   if (!u) return;
 
-  // Siempre actualizar local si el usuario existe ahí
   const localUsers = UserStore.load();
   if (localUsers[username]) {
     localUsers[username].coins = u.coins;
@@ -327,10 +328,8 @@ async function adminPersistUser(username) {
     UserStore.save(localUsers);
   }
 
-  // Siempre actualizar Firestore (para que el cambio sea global)
   if (typeof db !== 'undefined' && db) {
     try {
-      // Actualizar leaderboard (público)
       await db.collection('leaderboard').doc(username).set({
         username: username,
         inventory: u.inventory || {},
@@ -340,7 +339,6 @@ async function adminPersistUser(username) {
         updatedAt: Date.now()
       }, { merge: true });
 
-      // Actualizar colección users (datos completos del admin)
       await db.collection('users').doc(username).set({
         coins: u.coins || 0,
         inventory: u.inventory || {},
@@ -356,22 +354,123 @@ async function adminPersistUser(username) {
 
 async function adminDeleteUser(username) {
   delete adminAllUsers[username];
-
-  // Borrar del local
   const localUsers = UserStore.load();
-  if (localUsers[username]) {
-    delete localUsers[username];
-    UserStore.save(localUsers);
-  }
-
-  // Borrar de Firestore
+  if (localUsers[username]) { delete localUsers[username]; UserStore.save(localUsers); }
   if (typeof db !== 'undefined' && db) {
     try {
       await db.collection('leaderboard').doc(username).delete();
       await db.collection('users').doc(username).delete();
+      await db.collection('adminGifts').doc(username).delete();
+    } catch (e) {}
+  }
+}
+
+// ── Regalo a un usuario individual ───────────────────────────────────
+async function adminSendGift(username, amount) {
+  if (typeof db !== 'undefined' && db) {
+    try {
+      // Acumula el regalo en Firestore para que el jugador lo reciba al entrar
+      const ref = db.collection('adminGifts').doc(username);
+      const doc = await ref.get();
+      const existing = doc.exists ? (doc.data().amount || 0) : 0;
+      await ref.set({ amount: existing + amount, updatedAt: Date.now() });
     } catch (e) {
-      console.warn('No se pudo eliminar de Firestore:', e);
+      console.warn('No se pudo guardar regalo en Firestore:', e);
     }
+  }
+}
+
+// ── Regalo a TODOS los usuarios ───────────────────────────────────────
+async function adminGiftAll(amount) {
+  const btn = document.getElementById('admin-gift-all-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const usernames = Object.keys(adminAllUsers);
+  let ok = 0;
+
+  if (typeof db !== 'undefined' && db) {
+    // Usamos un batch de Firestore para escribir todos a la vez de forma eficiente
+    const BATCH_SIZE = 400; // Firestore limita a 500 operaciones por batch
+    for (let i = 0; i < usernames.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      const chunk = usernames.slice(i, i + BATCH_SIZE);
+      for (const username of chunk) {
+        const ref = db.collection('adminGifts').doc(username);
+        // merge: acumular si ya había un regalo pendiente
+        batch.set(ref, { amount: db.FieldValue ? db.FieldValue.increment(amount) : amount, updatedAt: Date.now() }, { merge: true });
+      }
+      try {
+        await batch.commit();
+        ok += chunk.length;
+      } catch (e) {
+        // Si FieldValue.increment no está disponible, escribir uno a uno
+        for (const username of chunk) {
+          try {
+            const ref = db.collection('adminGifts').doc(username);
+            const doc = await ref.get();
+            const existing = doc.exists ? (doc.data().amount || 0) : 0;
+            await ref.set({ amount: existing + amount, updatedAt: Date.now() });
+            ok++;
+          } catch (e2) {}
+        }
+      }
+    }
+  } else {
+    // Sin Firestore: solo aplicar a usuarios locales
+    const localUsers = UserStore.load();
+    usernames.forEach(function (u) {
+      if (localUsers[u]) { localUsers[u].coins = (localUsers[u].coins || 0) + amount; ok++; }
+    });
+    UserStore.save(localUsers);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🎁 Enviar regalo a todos';
+  adminShowGiftAllMsg('✅ Regalo de ' + amount + ' 🪙 enviado a ' + ok + ' jugadores', true);
+
+  // Recargar stats
+  await adminLoadAllUsers();
+  adminRenderGlobalStats();
+  adminRenderUserList(document.getElementById('admin-search').value.trim());
+}
+
+// ── Comprobar si hay regalo pendiente del admin (se llama al entrar al juego) ──
+async function checkAdminGift(username) {
+  if (!username || typeof db === 'undefined' || !db) return;
+  try {
+    const ref = db.collection('adminGifts').doc(username);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    const amount = doc.data().amount || 0;
+    if (amount <= 0) { await ref.delete(); return; }
+
+    // Añadir las monedas al jugador
+    const users = UserStore.load();
+    if (users[username]) {
+      users[username].coins = (users[username].coins || 0) + amount;
+      UserStore.save(users);
+    }
+
+    // Borrar el regalo de Firestore para que no se aplique dos veces
+    await ref.delete();
+
+    // Mostrar popup
+    document.getElementById('admin-gift-popup-text').textContent =
+      'El administrador te ha regalado ' + amount.toLocaleString() + ' monedas 🪙';
+    document.getElementById('admin-gift-popup').classList.remove('hidden');
+    document.getElementById('admin-gift-popup').style.display = 'flex';
+
+    // Actualizar balance en pantalla si ya está visible
+    const balanceEl = document.getElementById('balance-amount');
+    if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
+
+    // Sincronizar con Firestore
+    if (typeof pushUserData === 'function' && users[username]) {
+      pushUserData(username, users[username]);
+    }
+  } catch (e) {
+    console.warn('No se pudo comprobar regalo del admin:', e);
   }
 }
 
@@ -386,8 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('admin-search-btn').addEventListener('click', function () {
-    const q = document.getElementById('admin-search').value.trim();
-    adminRenderUserList(q);
+    adminRenderUserList(document.getElementById('admin-search').value.trim());
   });
 
   document.getElementById('admin-search').addEventListener('keydown', function (e) {
@@ -399,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
   });
 
-  // Dar monedas
+  // Dar monedas (individual)
   document.getElementById('admin-give-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -407,12 +505,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!adminAllUsers[adminSelectedUser]) { adminShowMsg('Usuario no encontrado', false); return; }
     adminAllUsers[adminSelectedUser].coins = (adminAllUsers[adminSelectedUser].coins || 0) + amount;
     await adminPersistUser(adminSelectedUser);
+    await adminSendGift(adminSelectedUser, amount); // popup al entrar
     document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + adminAllUsers[adminSelectedUser].coins.toLocaleString();
-    adminShowMsg('+' + amount + ' monedas añadidas', true);
+    adminShowMsg('+' + amount + ' monedas añadidas — recibirá el popup al entrar', true);
     adminRenderGlobalStats();
   });
 
-  // Quitar monedas
+  // Quitar monedas (individual)
   document.getElementById('admin-take-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -425,16 +524,21 @@ document.addEventListener('DOMContentLoaded', function () {
     adminRenderGlobalStats();
   });
 
-  // Cambiar contraseña (solo funciona para usuarios locales)
+  // Dar a todos
+  document.getElementById('admin-gift-all-btn').addEventListener('click', async function () {
+    const amount = parseInt(document.getElementById('admin-gift-all-input').value, 10);
+    if (isNaN(amount) || amount <= 0) { adminShowGiftAllMsg('Introduce una cantidad válida', false); return; }
+    if (!confirm('¿Enviar ' + amount + ' monedas a TODOS los jugadores (' + Object.keys(adminAllUsers).length + ')?')) return;
+    await adminGiftAll(amount);
+  });
+
+  // Cambiar contraseña
   document.getElementById('admin-change-pass-btn').addEventListener('click', function () {
     if (!adminSelectedUser) return;
     const newPass = document.getElementById('admin-newpass-input').value.trim();
     if (!newPass) { adminShowMsg('Introduce una contraseña', false); return; }
     const localUsers = UserStore.load();
-    if (!localUsers[adminSelectedUser]) {
-      adminShowMsg('Este usuario no tiene cuenta local en este dispositivo', false);
-      return;
-    }
+    if (!localUsers[adminSelectedUser]) { adminShowMsg('Usuario no tiene cuenta local en este dispositivo', false); return; }
     localUsers[adminSelectedUser].password = newPass;
     UserStore.save(localUsers);
     document.getElementById('admin-newpass-input').value = '';
@@ -468,6 +572,12 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
     adminRenderUserList(document.getElementById('admin-search').value.trim());
     adminRenderGlobalStats();
+  });
+
+  // Cerrar popup regalo
+  document.getElementById('admin-gift-popup-ok').addEventListener('click', function () {
+    document.getElementById('admin-gift-popup').classList.add('hidden');
+    document.getElementById('admin-gift-popup').style.display = 'none';
   });
 
 });
