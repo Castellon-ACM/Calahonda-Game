@@ -20,9 +20,10 @@
       { name: "Louis XIII", rarity: "legendary" }
     ];
     const RARITY_WEIGHT = { legendary: 3, epic: 12, rare: 25, common: 60 };
+    const RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3 };
     const ITEM_FULL_WIDTH = 102; // 90px + 6px*2 de margen
     const SPIN_COST = 10;
-    const CLAIM_AMOUNT = 100;
+    const CLAIM_AMOUNT = 200;
     const CLAIM_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
 
     // --- Iconos originales por botella (SVG propio, no fotos reales) ---
@@ -160,6 +161,15 @@
         grid.innerHTML = '<div class="inventory-empty">Aún no tienes botellas. ¡Gira la ruleta!</div>';
         return;
       }
+
+      // Ordenar de menor a mayor rareza (común -> rara -> épica -> legendaria)
+      names.sort(function (a, b) {
+        const ra = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === a; }) || {}).rarity || 'common'];
+        const rb = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === b; }) || {}).rarity || 'common'];
+        if (ra !== rb) return ra - rb;
+        return a.localeCompare(b);
+      });
+
       grid.innerHTML = '';
       names.forEach(function (name) {
         const rarity = (REWARDS.find(function (r) { return r.name === name; }) || {}).rarity || 'common';
@@ -184,7 +194,7 @@
       const claimBtn = document.getElementById('claim-btn');
       if (canClaim(data.lastClaim)) {
         claimBtn.disabled = false;
-        claimBtn.textContent = 'Reclamar 100 monedas 🪙';
+        claimBtn.textContent = 'Reclamar 200 monedas 🪙';
         if (_claimTimer) { clearInterval(_claimTimer); _claimTimer = null; }
       } else {
         claimBtn.disabled = true;
@@ -196,7 +206,7 @@
               clearInterval(_claimTimer);
               _claimTimer = null;
               claimBtn.disabled = false;
-              claimBtn.textContent = 'Reclamar 100 monedas 🪙';
+              claimBtn.textContent = 'Reclamar 200 monedas 🪙';
             } else {
               claimBtn.textContent = 'Vuelve en ' + timeUntilClaim(fresh.lastClaim);
             }
