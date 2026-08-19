@@ -1,22 +1,20 @@
 // =====================================================================
 //  FIREBASE: ranking global (Firestore)
 // =====================================================================
-// ⚠️ IMPORTANTE: sustituye estos valores por los de TU proyecto de Firebase.
-// Los sacas en: Firebase Console → ⚙️ Configuración del proyecto → tus apps → SDK
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyAD6yWhpCvO_onEeJHMdDHcYyHhtzrwEKE",
+  authDomain: "alcohol-365.firebaseapp.com",
+  projectId: "alcohol-365",
+  storageBucket: "alcohol-365.firebasestorage.app",
+  messagingSenderId: "210841175618",
+  appId: "1:210841175618:web:fa662ecbd854f34a800fdb"
 };
 
 let firebaseReady = false;
 let db = null;
 
 try {
-  if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== 'TU_API_KEY') {
+  if (typeof firebase !== 'undefined') {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     firebaseReady = true;
