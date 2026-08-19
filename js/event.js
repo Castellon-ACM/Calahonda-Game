@@ -148,6 +148,7 @@ function startCardGame() {
   const winningIndex = Math.floor(Math.random() * 3);
   let shuffles = 0;
   const maxShuffles = 16;
+  let picked = false; // asegura que solo se puede elegir UNA carta en total
 
   const shuffleTimer = setInterval(function () {
     cards.forEach(function (c) {
@@ -162,7 +163,9 @@ function startCardGame() {
       cards.forEach(function (c, i) {
         c.classList.remove('disabled');
         c.addEventListener('click', function onPick() {
-          cards.forEach(function (cc) { cc.removeEventListener('click', onPick); cc.classList.add('disabled'); });
+          if (picked) return;
+          picked = true;
+          cards.forEach(function (cc) { cc.classList.add('disabled'); });
           revealCards(cards, winningIndex, i);
         });
       });
