@@ -14,7 +14,7 @@
       function load() {
         if (useLocal) {
           try {
-            return JSON.parse(localStorage.getItem('alcohol365_users') || '{}');
+            return JSON.parse(localStorage.getItem('alcohol365_users_v2') || '{}');
           } catch (e) {
             return {};
           }
@@ -25,7 +25,7 @@
       function save(data) {
         if (useLocal) {
           try {
-            localStorage.setItem('alcohol365_users', JSON.stringify(data));
+            localStorage.setItem('alcohol365_users_v2', JSON.stringify(data));
             return;
           } catch (e) { /* cae al modo memoria */ }
         }
