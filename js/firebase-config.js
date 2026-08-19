@@ -1,5 +1,5 @@
 // =====================================================================
-//  FIREBASE: ranking global (Firestore)
+//  FIREBASE: ranking global + sincronización de datos de usuario
 // =====================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyAD6yWhpCvO_onEeJHMdDHcYyHhtzrwEKE",
@@ -23,8 +23,7 @@ try {
   console.warn('Firebase no se pudo inicializar:', e);
 }
 
-// Sube (o actualiza) la colección pública de un jugador para el ranking global.
-// No incluye monedas: eso se queda siempre en local, nunca es público.
+// Sube el inventario público al ranking (sin datos privados como contraseña).
 async function pushToLeaderboard(username, inventory) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -40,8 +39,27 @@ async function pushToLeaderboard(username, inventory) {
   }
 }
 
-// Descarga el ranking global completo. Devuelve null si Firebase no está
-// configurado (o falla), para que el resto del código pueda usar un fallback local.
+// Sube los datos completos del jugador a la colección 'users' de Firestore.
+// Esto permite al admin ver y gestionar todos los jugadores desde cualquier dispositivo.
+// NO sube la contraseña.
+async function pushUserData(username, data) {
+  if (!firebaseReady || !db || !username || !data) return;
+  try {
+    await db.collection('users').doc(username).set({
+      username: username,
+      coins: data.coins || 0,
+      inventory: data.inventory || {},
+      email: data.email || '',
+      banned: data.banned || false,
+      value: computeCollectionValue(data.inventory || {}),
+      updatedAt: Date.now()
+    }, { merge: true });
+  } catch (e) {
+    console.warn('No se pudo sincronizar datos de usuario:', e);
+  }
+}
+
+// Descarga el ranking global completo.
 async function fetchGlobalLeaderboard() {
   if (!firebaseReady || !db) return null;
   try {
@@ -50,5 +68,31 @@ async function fetchGlobalLeaderboard() {
   } catch (e) {
     console.warn('No se pudo cargar el ranking global:', e);
     return null;
+  }
+}
+
+// Carga los datos de un usuario desde Firestore y los aplica al localStorage.
+// Se llama al hacer login para sincronizar monedas/inventario que el admin haya modificado.
+async function pullUserData(username) {
+  if (!firebaseReady || !db || !username) return;
+  try {
+    const doc = await db.collection('users').doc(username).get();
+    if (!doc.exists) return;
+    const remote = doc.data();
+    const users = UserStore.load();
+    if (!users[username]) return;
+    // Aplicar solo si los datos remotos son más recientes
+    const localUpdated = users[username].updatedAt || 0;
+    const remoteUpdated = remote.updatedAt || 0;
+    if (remoteUpdated > localUpdated) {
+      users[username].coins = remote.coins || users[username].coins;
+      users[username].inventory = remote.inventory || users[username].inventory;
+      users[username].email = remote.email || users[username].email;
+      users[username].banned = remote.banned || users[username].banned;
+      users[username].updatedAt = remoteUpdated;
+      UserStore.save(users);
+    }
+  } catch (e) {
+    console.warn('No se pudo cargar datos remotos del usuario:', e);
   }
 }
