@@ -218,6 +218,8 @@
       renderCosmeticsGame();
       // Comprobar si el admin ha enviado monedas mientras el jugador estaba fuera
       checkAdminGift(currentUser);
+      // Comprobar si hay un evento especial activo para este jugador
+      checkEventTabVisibility();
     }
 
     function buildIdleReel() {
