@@ -22,8 +22,19 @@
 <!-- Registro del service worker para auto-actualización -->
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
       console.log('[App] SW registrado:', reg.scope);
+
+      // Forzar comprobación de versión nueva en cuanto carga
+      reg.update();
+
+      // Y también cada vez que la app vuelve a primer plano
+      // (cubre el caso típico de iOS: abrir el icono sin cerrarlo del todo antes)
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          reg.update();
+        }
+      });
     }).catch(function (err) {
       console.warn('[App] SW error:', err);
     });
