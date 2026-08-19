@@ -127,7 +127,11 @@
       const existing = users[currentUser] || { password: '' };
       const updated = {
         email: newEmail,
-        password: newPass ? newPass : existing.password
+        password: newPass ? newPass : existing.password,
+        coins: existing.coins || 0,
+        inventory: existing.inventory || {},
+        lastClaim: existing.lastClaim || null,
+        updatedAt: Date.now()
       };
 
       delete users[currentUser];
@@ -135,6 +139,7 @@
       UserStore.save(users);
 
       currentUser = newUser;
+      pushUserData(newUser, updated); // sincronizar cambio de nombre/email con Firestore
       document.getElementById('avatar-btn').textContent = initial(newUser);
       document.getElementById('avatar-btn-account').textContent = initial(newUser);
       document.getElementById('account-pass').value = '';
@@ -155,7 +160,7 @@
       loginScreen.classList.remove('hidden');
     });
 
-    document.getElementById('login-form').addEventListener('submit', function (e) {
+    document.getElementById('login-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       const user = document.getElementById('login-user').value.trim();
       const pass = document.getElementById('login-pass').value.trim();
@@ -189,6 +194,11 @@
       }
 
       errorMsg.style.display = 'none';
+
+      // Sincronizar datos desde Firestore antes de entrar
+      // (aplica monedas/inventario que el admin haya podido modificar)
+      await pullUserData(user);
+
       showApp(user);
     });
 
@@ -212,8 +222,12 @@
         return;
       }
 
-      users[user] = { email: email, password: pass, coins: 100 };
+      const newUserData = { email: email, password: pass, coins: 100, inventory: {}, updatedAt: Date.now() };
+      users[user] = newUserData;
       UserStore.save(users);
+
+      // Subir el nuevo usuario a Firestore para que el admin lo vea desde el primer momento
+      pushUserData(user, newUserData);
 
       errorMsg.style.display = 'none';
       showApp(user);
