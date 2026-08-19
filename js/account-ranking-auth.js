@@ -188,7 +188,7 @@
         return;
       }
 
-      users[user] = { email: email, password: pass };
+      users[user] = { email: email, password: pass, coins: 100 };
       UserStore.save(users);
 
       errorMsg.style.display = 'none';
