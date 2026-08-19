@@ -21,7 +21,7 @@
     ];
     const RARITY_WEIGHT = { legendary: 3, epic: 12, rare: 25, common: 60 };
     const ITEM_FULL_WIDTH = 102; // 90px + 6px*2 de margen
-    const SPIN_COST = 50;
+    const SPIN_COST = 10;
     const DAILY_AMOUNT = 50;
 
     // --- Iconos originales por botella (SVG propio, no fotos reales) ---
@@ -88,10 +88,6 @@
       if (!data.skins) data.skins = {};
       if (!data.ownedSkins) data.ownedSkins = {};
       if (data.lastClaim === undefined) data.lastClaim = null;
-      if (!data.bonusGranted && username && username.trim().toLowerCase() === 'caste') {
-        data.coins = 100000;
-        data.bonusGranted = true;
-      }
       return data;
     }
 
