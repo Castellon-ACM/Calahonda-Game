@@ -12,8 +12,9 @@ function renderSupportTab() {
     '<div class="event-title">☕ Apoya el proyecto</div>' +
     '<div class="event-subtitle">Si quieres echar una mano con el desarrollo de Alcohol 365, puedes hacer una donación libre y voluntaria por PayPal. No da monedas de forma automática — es solo para apoyar, y como agradecimiento te doy un detalle especial en el juego.</div>' +
     '<a href="' + PAYPAL_LINK + '" target="_blank" rel="noopener" class="btn support-btn" style="display:block;text-align:center;margin-top:16px;">💛 Donar por PayPal</a>' +
-    '<div class="event-subtitle" style="margin-top:20px;">Cuando hayas donado, avísame aquí para que sepa a quién darle las gracias:</div>' +
-    '<button type="button" class="btn" id="support-claim-btn" style="margin-top:10px;">✅ Ya he donado, avisar</button>' +
+    '<div class="event-subtitle" style="margin-top:20px;">Cuando hayas donado, avísame aquí para que sepa a quién darle las gracias (y cuánto, para agradecértelo como toca):</div>' +
+    '<input type="number" id="support-claim-amount" min="0" step="0.5" placeholder="¿Cuánto has donado? (€, opcional)" class="bet-amount-input" style="margin-top:10px;">' +
+    '<button type="button" class="btn" id="support-claim-btn">✅ Ya he donado, avisar</button>' +
     '<div id="support-claim-msg" style="margin-top:10px;text-align:center;font-size:13px;min-height:18px;"></div>';
 
   const btn = document.getElementById('support-claim-btn');
@@ -23,6 +24,8 @@ function renderSupportTab() {
 async function submitDonationClaim() {
   const msgEl = document.getElementById('support-claim-msg');
   const btn = document.getElementById('support-claim-btn');
+  const amountInput = document.getElementById('support-claim-amount');
+  const amount = amountInput ? parseFloat(amountInput.value) : NaN;
   if (!firebaseReady || !db || !currentUser) {
     msgEl.textContent = 'No se pudo enviar el aviso ahora mismo';
     msgEl.style.color = '#ff8f8f';
@@ -32,6 +35,7 @@ async function submitDonationClaim() {
   try {
     await db.collection('donationClaims').doc(currentUser).set({
       username: currentUser,
+      amount: isNaN(amount) ? null : amount,
       claimedAt: Date.now(),
       fulfilled: false
     });
@@ -76,8 +80,9 @@ async function renderSupportAdminList() {
       const d = doc.data();
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #222;gap:8px';
+      const amountLabel = (d.amount !== undefined && d.amount !== null) ? (d.amount + '€') : '¿?';
       row.innerHTML =
-        '<div style="color:#fff;flex:1;word-break:break-word">' + d.username + '</div>' +
+        '<div style="color:#fff;flex:1;word-break:break-word">' + d.username + ' <span style="color:#f5c518;font-weight:700">· ' + amountLabel + '</span></div>' +
         '<button type="button" class="btn" style="width:auto;padding:8px 12px;font-size:12px;margin:0;white-space:nowrap">💛 Dar regalo</button>';
       row.querySelector('button').addEventListener('click', async function () {
         await grantDonorGift(d.username);
