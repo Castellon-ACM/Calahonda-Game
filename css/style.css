@@ -1068,3 +1068,39 @@
     font-size: 12px;
     margin-top: 12px;
   }
+
+  /* ---------- Historial de números de la ruleta ---------- */
+  .roulette-history {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .roulette-history-chip {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .rh-red { background: #a01e1e; }
+  .rh-black { background: #1a1a1a; }
+  .rh-green { background: #0f5c2e; }
+  .roulette-history-empty {
+    color: #6b5f45;
+    font-size: 12px;
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  /* ---------- Botón de repetir apuesta ---------- */
+  .repeat-bet-btn {
+    background: linear-gradient(135deg, #a24ff0, #4a1a70);
+    color: #fff;
+  }
