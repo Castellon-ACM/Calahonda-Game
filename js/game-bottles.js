@@ -22,7 +22,8 @@
     const RARITY_WEIGHT = { legendary: 3, epic: 12, rare: 25, common: 60 };
     const ITEM_FULL_WIDTH = 102; // 90px + 6px*2 de margen
     const SPIN_COST = 10;
-    const DAILY_AMOUNT = 50;
+    const CLAIM_AMOUNT = 100;
+    const CLAIM_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
 
     // --- Iconos originales por botella (SVG propio, no fotos reales) ---
     const BOTTLE_STYLE = {
@@ -77,10 +78,6 @@
       return { level: level, nextThreshold: nextThreshold, pct: pct };
     }
 
-    function todayStr() {
-      return new Date().toISOString().slice(0, 10);
-    }
-
     function ensureUserDefaults(username, data) {
       data = data || {};
       if (typeof data.coins !== 'number') data.coins = 0;
@@ -103,6 +100,26 @@
       const users = UserStore.load();
       users[currentUser] = data;
       UserStore.save(users);
+    }
+
+    // Devuelve true si el jugador puede reclamar (han pasado ≥4h desde el último claim)
+    function canClaim(lastClaim) {
+      if (!lastClaim) return true;
+      return (Date.now() - lastClaim) >= CLAIM_COOLDOWN_MS;
+    }
+
+    // Devuelve una string legible con el tiempo restante hasta poder reclamar
+    function timeUntilClaim(lastClaim) {
+      if (!lastClaim) return '';
+      const remaining = CLAIM_COOLDOWN_MS - (Date.now() - lastClaim);
+      if (remaining <= 0) return '';
+      const totalSec = Math.ceil(remaining / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+      if (m > 0) return m + 'm ' + String(s).padStart(2, '0') + 's';
+      return s + 's';
     }
 
     function randomReward() {
@@ -152,21 +169,40 @@
       });
     }
 
+    // Actualiza el botón de claim y arranca el contador regresivo si toca esperar
+    let _claimTimer = null;
+    function updateClaimButton() {
+      const data = getCurrentUserData();
+      const claimBtn = document.getElementById('claim-btn');
+      if (canClaim(data.lastClaim)) {
+        claimBtn.disabled = false;
+        claimBtn.textContent = 'Reclamar 100 monedas 🪙';
+        if (_claimTimer) { clearInterval(_claimTimer); _claimTimer = null; }
+      } else {
+        claimBtn.disabled = true;
+        claimBtn.textContent = 'Vuelve en ' + timeUntilClaim(data.lastClaim);
+        if (!_claimTimer) {
+          _claimTimer = setInterval(function () {
+            const fresh = getCurrentUserData();
+            if (canClaim(fresh.lastClaim)) {
+              clearInterval(_claimTimer);
+              _claimTimer = null;
+              claimBtn.disabled = false;
+              claimBtn.textContent = 'Reclamar 100 monedas 🪙';
+            } else {
+              claimBtn.textContent = 'Vuelve en ' + timeUntilClaim(fresh.lastClaim);
+            }
+          }, 1000);
+        }
+      }
+    }
+
     function renderGame() {
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
       pushToLeaderboard(currentUser, data.inventory);
-
-      const claimBtn = document.getElementById('claim-btn');
-      if (data.lastClaim === todayStr()) {
-        claimBtn.disabled = true;
-        claimBtn.textContent = 'Vuelve mañana';
-      } else {
-        claimBtn.disabled = false;
-        claimBtn.textContent = 'Reclamar 50 monedas';
-      }
-
+      updateClaimButton();
       document.getElementById('spin-btn').disabled = false;
       document.getElementById('spin-result').textContent = '';
       buildIdleReel();
@@ -194,11 +230,12 @@
 
     document.getElementById('claim-btn').addEventListener('click', function () {
       const data = getCurrentUserData();
-      if (data.lastClaim === todayStr()) return;
-      data.coins += DAILY_AMOUNT;
-      data.lastClaim = todayStr();
+      if (!canClaim(data.lastClaim)) return;
+      data.coins += CLAIM_AMOUNT;
+      data.lastClaim = Date.now(); // guardamos timestamp en ms, no string de fecha
       saveCurrentUserData(data);
-      renderGame();
+      document.getElementById('balance-amount').textContent = data.coins;
+      updateClaimButton();
     });
 
     document.getElementById('spin-btn').addEventListener('click', function () {
