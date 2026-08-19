@@ -81,7 +81,15 @@ async function pullUserData(username) {
     const remote = doc.data();
     const users = UserStore.load();
     if (!users[username]) return;
-    // Aplicar solo si los datos remotos son más recientes
+
+    // Los regalos de skins del admin se fusionan siempre (no se pisan entre sí,
+    // ni dependen de qué dispositivo tenga los datos más recientes).
+    if (remote.ownedSkins) {
+      users[username].ownedSkins = Object.assign({}, users[username].ownedSkins || {}, remote.ownedSkins);
+      UserStore.save(users);
+    }
+
+    // Aplicar el resto solo si los datos remotos son más recientes
     const localUpdated = users[username].updatedAt || 0;
     const remoteUpdated = remote.updatedAt || 0;
     if (remoteUpdated > localUpdated) {
