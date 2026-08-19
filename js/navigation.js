@@ -38,6 +38,21 @@
       document.getElementById('tab-support').classList.add('hidden');
 
       renderGame();
+      startLivePolling();
+    }
+
+    // Comprueba cada 20s (mientras la app está abierta) si hay regalos del admin,
+    // eventos nuevos o notificaciones pendientes — sin tener que cerrar la app.
+    let _livePollTimer = null;
+    function startLivePolling() {
+      if (_livePollTimer) clearInterval(_livePollTimer);
+      _livePollTimer = setInterval(function () {
+        if (!currentUser) return;
+        if (appScreen.classList.contains('hidden')) return;
+        checkAdminGift(currentUser);
+        checkEventTabVisibility();
+        checkUserNotifications(currentUser);
+      }, 20000);
     }
 
     document.querySelectorAll('.tabbar-btn').forEach(function (btn) {
