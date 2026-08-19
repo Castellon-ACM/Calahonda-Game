@@ -1104,3 +1104,27 @@
     background: linear-gradient(135deg, #a24ff0, #4a1a70);
     color: #fff;
   }
+
+  /* ---------- Evento: cronómetro ---------- */
+  .stopwatch-display {
+    text-align: center;
+    font-size: 48px;
+    font-weight: 800;
+    color: #f4d98a;
+    font-variant-numeric: tabular-nums;
+    margin: 24px 0;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- Robar botellas ---------- */
+  .steal-btn {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 4px;
+    font-size: 10.5px;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #ff9d9d, #8b0000);
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+  }
