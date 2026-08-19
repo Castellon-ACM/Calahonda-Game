@@ -6,6 +6,7 @@
       { name: "Smirnoff", rarity: "common" },
       { name: "Baileys", rarity: "common" },
       { name: "Absolut", rarity: "common" },
+      { name: "Heineken", rarity: "common" },
       { name: "Ballantine's", rarity: "rare" },
       { name: "Bacardí", rarity: "rare" },
       { name: "Jack Daniel's", rarity: "rare" },
@@ -13,6 +14,7 @@
       { name: "Hennessy", rarity: "epic" },
       { name: "Moët & Chandon", rarity: "epic" },
       { name: "Grey Goose", rarity: "epic" },
+      { name: "Black Label", rarity: "epic" },
       { name: "Dom Pérignon", rarity: "legendary" },
       { name: "Macallan 18", rarity: "legendary" },
       { name: "Louis XIII", rarity: "legendary" }
@@ -37,7 +39,9 @@
       "Grey Goose": { glass: "#a9c7d8", cap: "#c0c8cc", label: "#3a5a70" },
       "Dom Pérignon": { glass: "#caa24a", cap: "#d4af37", label: "#f4f0e0" },
       "Macallan 18": { glass: "#6b3a10", cap: "#2a1a0a", label: "#caa24a" },
-      "Louis XIII": { glass: "#e0c060", cap: "#caa24a", label: "#7c5a10", round: true }
+      "Louis XIII": { glass: "#e0c060", cap: "#caa24a", label: "#7c5a10", round: true },
+      "Heineken": { glass: "#0a7a3e", cap: "#0a7a3e", label: "#ffffff" },
+      "Black Label": { glass: "#1a1a1a", cap: "#d4af37", label: "#1a1a1a" }
     };
 
     function bottleIconMarkup(name) {
