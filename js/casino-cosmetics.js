@@ -13,7 +13,7 @@
       { id: 'tophat', label: 'Sombrero de copa', icon: '🎩', rarity: 'epic' },
       { id: 'crown', label: 'Corona real', icon: '👑', rarity: 'legendary' }
     ];
-    const COSMETIC_SPIN_COST = 80;
+    const COSMETIC_SPIN_COST = 30;
 
     function pickWeightedCosmetic() {
       const roll = Math.random() * 100;
