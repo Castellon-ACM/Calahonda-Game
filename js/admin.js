@@ -19,13 +19,11 @@ const ADMIN_PASS = 'papaplaya';
       <div class="card">
         <h1>Panel de administración</h1>
 
-        <!-- Buscador -->
-        <div class="field" style="display:flex;gap:8px;align-items:flex-end">
-          <div style="flex:1">
-            <label>Buscar usuario</label>
-            <input type="text" id="admin-search" placeholder="nombre de usuario">
-          </div>
-          <button type="button" class="btn" id="admin-search-btn" style="margin-bottom:0;padding:10px 16px">🔍</button>
+        <!-- Buscador: input 100% + botón debajo 100% -->
+        <div class="field" style="margin-bottom:12px">
+          <label style="display:block;margin-bottom:4px">Buscar usuario</label>
+          <input type="text" id="admin-search" placeholder="nombre de usuario" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+          <button type="button" class="btn" id="admin-search-btn" style="width:100%;box-sizing:border-box;padding:10px;white-space:nowrap;overflow:hidden;min-width:0">🔍 Buscar</button>
         </div>
 
         <!-- Stats globales -->
@@ -37,12 +35,12 @@ const ADMIN_PASS = 'papaplaya';
         <!-- Fuente de datos activa -->
         <div id="admin-source-badge" style="font-size:11px;color:#aaa;margin-bottom:8px;text-align:right"></div>
 
-        <!-- ── DAR MONEDAS A TODOS ── -->
+        <!-- DAR MONEDAS A TODOS -->
         <div style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0;border:1px solid #f5c51833">
-          <div style="color:#f5c518;font-weight:700;margin-bottom:10px">🎁 Dar monedas a TODOS</div>
-          <div style="color:#aaa;font-size:12px;margin-bottom:8px">Se añadirán a todos los jugadores. Al entrar al juego verán un popup de regalo.</div>
-          <input type="number" id="admin-gift-all-input" placeholder="cantidad de monedas" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
-          <button type="button" class="btn" id="admin-gift-all-btn" style="width:100%;padding:11px;font-size:14px">🎁 Enviar regalo a todos</button>
+          <div style="color:#f5c518;font-weight:700;margin-bottom:8px">🎁 Dar monedas a TODOS</div>
+          <div style="color:#aaa;font-size:12px;margin-bottom:8px">Al entrar al juego verán un popup de regalo.</div>
+          <input type="number" id="admin-gift-all-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+          <button type="button" class="btn" id="admin-gift-all-btn" style="width:100%;box-sizing:border-box;padding:11px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🎁 Enviar regalo a todos</button>
           <div id="admin-gift-all-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
         </div>
 
@@ -51,30 +49,30 @@ const ADMIN_PASS = 'papaplaya';
         <div id="admin-user-list">Cargando...</div>
 
         <!-- Modal detalle usuario -->
-        <div id="admin-user-modal" class="hidden" style="background:#1a1505;border-radius:16px;padding:18px;margin-top:16px;border:1px solid #f5c51855">
+        <div id="admin-user-modal" class="hidden" style="background:#1a1505;border-radius:16px;padding:18px;margin-top:16px;border:1px solid #f5c51855;box-sizing:border-box;width:100%;overflow:hidden">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div style="color:#f5c518;font-weight:700;font-size:16px" id="admin-modal-title">Usuario</div>
-            <button type="button" id="admin-modal-close" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer">✕</button>
+            <div style="color:#f5c518;font-weight:700;font-size:16px;word-break:break-word;flex:1;margin-right:8px" id="admin-modal-title">Usuario</div>
+            <button type="button" id="admin-modal-close" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;flex-shrink:0">✕</button>
           </div>
 
           <div id="admin-modal-source" style="font-size:11px;color:#888;margin-bottom:6px"></div>
           <div id="admin-modal-coins" style="color:#ccc;font-size:13px;margin-bottom:4px"></div>
-          <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px"></div>
-          <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:12px"></div>
+          <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px;word-break:break-all"></div>
+          <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:14px"></div>
 
-          <!-- Dar / quitar monedas — botones en vertical -->
-          <div style="margin-bottom:12px">
+          <!-- Dar / quitar monedas — todo en vertical, ancho completo -->
+          <div style="margin-bottom:14px">
             <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
-            <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
-            <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;padding:11px;font-size:14px;margin-bottom:6px">✅ Dar monedas</button>
-            <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;padding:11px;font-size:14px">❌ Quitar monedas</button>
+            <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+            <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">✅ Dar monedas</button>
+            <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">❌ Quitar monedas</button>
           </div>
 
           <!-- Cambiar contraseña -->
-          <div style="margin-bottom:12px">
-            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#666">(solo si está en este dispositivo)</span></div>
-            <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box">
-            <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;padding:11px;font-size:14px">💾 Guardar contraseña</button>
+          <div style="margin-bottom:14px">
+            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#555">(solo si está en este dispositivo)</span></div>
+            <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+            <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">💾 Guardar contraseña</button>
           </div>
 
           <!-- Inventario -->
@@ -82,10 +80,10 @@ const ADMIN_PASS = 'papaplaya';
           <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;margin-bottom:14px"></div>
 
           <!-- Acciones peligrosas -->
-          <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;width:100%;padding:11px;margin-bottom:6px">🚫 Banear usuario</button>
-          <button type="button" class="btn logout-btn" id="admin-delete-btn" style="width:100%;padding:11px">🗑️ Eliminar cuenta</button>
+          <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">🚫 Banear usuario</button>
+          <button type="button" class="btn logout-btn" id="admin-delete-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🗑️ Eliminar cuenta</button>
 
-          <div id="admin-modal-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
+          <div id="admin-modal-msg" style="margin-top:10px;font-size:13px;text-align:center"></div>
         </div>
 
       </div>
@@ -94,11 +92,11 @@ const ADMIN_PASS = 'papaplaya';
 
   <!-- Popup regalo del admin -->
   <div id="admin-gift-popup" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
-    <div style="background:#1a1505;border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;border:2px solid #f5c518">
+    <div style="background:#1a1505;border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;border:2px solid #f5c518;box-sizing:border-box">
       <div style="font-size:48px;margin-bottom:12px">🎁</div>
       <div style="color:#f5c518;font-weight:700;font-size:18px;margin-bottom:8px">¡Regalo del administrador!</div>
       <div id="admin-gift-popup-text" style="color:#ccc;font-size:15px;margin-bottom:20px"></div>
-      <button type="button" class="btn" id="admin-gift-popup-ok" style="width:100%;padding:13px;font-size:15px">🪙 ¡Recibir!</button>
+      <button type="button" class="btn" id="admin-gift-popup-ok" style="width:100%;box-sizing:border-box;padding:13px;font-size:15px">🪙 ¡Recibir!</button>
     </div>
   </div>
   `;
@@ -273,11 +271,11 @@ function adminRenderUserList(filter) {
       '<div style="width:36px;height:36px;border-radius:50%;background:#f5c518;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0d0a05;flex-shrink:0">' +
         username[0].toUpperCase() +
       '</div>' +
-      '<div style="flex:1">' +
-        '<div style="font-weight:600;color:#fff">' + username + banned + sourceIcon + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;color:#fff;word-break:break-word">' + username + banned + sourceIcon + '</div>' +
         '<div style="font-size:12px;color:#aaa">🪙 ' + coins.toLocaleString() + ' · ⭐ ' + (u.value || 0) + ' pts · 🎁 ' + invCount + ' items</div>' +
       '</div>' +
-      '<div style="color:#555;font-size:18px">›</div>';
+      '<div style="color:#555;font-size:18px;flex-shrink:0">›</div>';
     row.addEventListener('click', function () { adminOpenUserModal(username); });
     listEl.appendChild(row);
   });
@@ -365,22 +363,20 @@ async function adminDeleteUser(username) {
   }
 }
 
-// ── Regalo a un usuario individual ───────────────────────────────────
+// ── Regalo individual ─────────────────────────────────────────────────
 async function adminSendGift(username, amount) {
-  if (typeof db !== 'undefined' && db) {
-    try {
-      // Acumula el regalo en Firestore para que el jugador lo reciba al entrar
-      const ref = db.collection('adminGifts').doc(username);
-      const doc = await ref.get();
-      const existing = doc.exists ? (doc.data().amount || 0) : 0;
-      await ref.set({ amount: existing + amount, updatedAt: Date.now() });
-    } catch (e) {
-      console.warn('No se pudo guardar regalo en Firestore:', e);
-    }
+  if (typeof db === 'undefined' || !db) return;
+  try {
+    const ref = db.collection('adminGifts').doc(username);
+    const doc = await ref.get();
+    const existing = doc.exists ? (doc.data().amount || 0) : 0;
+    await ref.set({ amount: existing + amount, updatedAt: Date.now() });
+  } catch (e) {
+    console.warn('No se pudo guardar regalo en Firestore:', e);
   }
 }
 
-// ── Regalo a TODOS los usuarios ───────────────────────────────────────
+// ── Regalo a TODOS ────────────────────────────────────────────────────
 async function adminGiftAll(amount) {
   const btn = document.getElementById('admin-gift-all-btn');
   btn.disabled = true;
@@ -390,34 +386,21 @@ async function adminGiftAll(amount) {
   let ok = 0;
 
   if (typeof db !== 'undefined' && db) {
-    // Usamos un batch de Firestore para escribir todos a la vez de forma eficiente
-    const BATCH_SIZE = 400; // Firestore limita a 500 operaciones por batch
+    const BATCH_SIZE = 400;
     for (let i = 0; i < usernames.length; i += BATCH_SIZE) {
-      const batch = db.batch();
       const chunk = usernames.slice(i, i + BATCH_SIZE);
+      // Escribir uno a uno acumulando (batch con increment no siempre disponible en compat SDK)
       for (const username of chunk) {
-        const ref = db.collection('adminGifts').doc(username);
-        // merge: acumular si ya había un regalo pendiente
-        batch.set(ref, { amount: db.FieldValue ? db.FieldValue.increment(amount) : amount, updatedAt: Date.now() }, { merge: true });
-      }
-      try {
-        await batch.commit();
-        ok += chunk.length;
-      } catch (e) {
-        // Si FieldValue.increment no está disponible, escribir uno a uno
-        for (const username of chunk) {
-          try {
-            const ref = db.collection('adminGifts').doc(username);
-            const doc = await ref.get();
-            const existing = doc.exists ? (doc.data().amount || 0) : 0;
-            await ref.set({ amount: existing + amount, updatedAt: Date.now() });
-            ok++;
-          } catch (e2) {}
-        }
+        try {
+          const ref = db.collection('adminGifts').doc(username);
+          const doc = await ref.get();
+          const existing = doc.exists ? (doc.data().amount || 0) : 0;
+          await ref.set({ amount: existing + amount, updatedAt: Date.now() });
+          ok++;
+        } catch (e) {}
       }
     }
   } else {
-    // Sin Firestore: solo aplicar a usuarios locales
     const localUsers = UserStore.load();
     usernames.forEach(function (u) {
       if (localUsers[u]) { localUsers[u].coins = (localUsers[u].coins || 0) + amount; ok++; }
@@ -429,13 +412,12 @@ async function adminGiftAll(amount) {
   btn.textContent = '🎁 Enviar regalo a todos';
   adminShowGiftAllMsg('✅ Regalo de ' + amount + ' 🪙 enviado a ' + ok + ' jugadores', true);
 
-  // Recargar stats
   await adminLoadAllUsers();
   adminRenderGlobalStats();
   adminRenderUserList(document.getElementById('admin-search').value.trim());
 }
 
-// ── Comprobar si hay regalo pendiente del admin (se llama al entrar al juego) ──
+// ── Comprobar regalo pendiente del admin ──────────────────────────────
 async function checkAdminGift(username) {
   if (!username || typeof db === 'undefined' || !db) return;
   try {
@@ -445,27 +427,23 @@ async function checkAdminGift(username) {
     const amount = doc.data().amount || 0;
     if (amount <= 0) { await ref.delete(); return; }
 
-    // Añadir las monedas al jugador
     const users = UserStore.load();
     if (users[username]) {
       users[username].coins = (users[username].coins || 0) + amount;
       UserStore.save(users);
     }
 
-    // Borrar el regalo de Firestore para que no se aplique dos veces
     await ref.delete();
 
-    // Mostrar popup
     document.getElementById('admin-gift-popup-text').textContent =
       'El administrador te ha regalado ' + amount.toLocaleString() + ' monedas 🪙';
-    document.getElementById('admin-gift-popup').classList.remove('hidden');
-    document.getElementById('admin-gift-popup').style.display = 'flex';
+    const popup = document.getElementById('admin-gift-popup');
+    popup.classList.remove('hidden');
+    popup.style.display = 'flex';
 
-    // Actualizar balance en pantalla si ya está visible
     const balanceEl = document.getElementById('balance-amount');
     if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
 
-    // Sincronizar con Firestore
     if (typeof pushUserData === 'function' && users[username]) {
       pushUserData(username, users[username]);
     }
@@ -497,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
   });
 
-  // Dar monedas (individual)
+  // Dar monedas
   document.getElementById('admin-give-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -505,13 +483,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!adminAllUsers[adminSelectedUser]) { adminShowMsg('Usuario no encontrado', false); return; }
     adminAllUsers[adminSelectedUser].coins = (adminAllUsers[adminSelectedUser].coins || 0) + amount;
     await adminPersistUser(adminSelectedUser);
-    await adminSendGift(adminSelectedUser, amount); // popup al entrar
+    await adminSendGift(adminSelectedUser, amount);
     document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + adminAllUsers[adminSelectedUser].coins.toLocaleString();
-    adminShowMsg('+' + amount + ' monedas añadidas — recibirá el popup al entrar', true);
+    adminShowMsg('+' + amount + ' monedas — recibirá popup al entrar', true);
     adminRenderGlobalStats();
   });
 
-  // Quitar monedas (individual)
+  // Quitar monedas
   document.getElementById('admin-take-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -576,8 +554,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Cerrar popup regalo
   document.getElementById('admin-gift-popup-ok').addEventListener('click', function () {
-    document.getElementById('admin-gift-popup').classList.add('hidden');
-    document.getElementById('admin-gift-popup').style.display = 'none';
+    const popup = document.getElementById('admin-gift-popup');
+    popup.classList.add('hidden');
+    popup.style.display = 'none';
   });
 
 });
