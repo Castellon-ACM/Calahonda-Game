@@ -17,7 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=20260819"></script>
+<script src="js/firebase-config.js?v=20260819b"></script>
 
 <!-- Registro del service worker para auto-actualización -->
 <script>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino / Evento) -->
+  <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino / Evento / Apoyo) -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
       <div class="avatar-btn" id="avatar-btn"></div>
@@ -297,6 +297,13 @@
           <div id="event-content"></div>
         </div>
       </div>
+
+      <!-- PESTAÑA APOYO -->
+      <div id="tab-support" class="app-tab hidden">
+        <div class="game">
+          <div id="support-content"></div>
+        </div>
+      </div>
     </div>
 
     <div class="app-tabbar">
@@ -308,6 +315,9 @@
       </button>
       <button class="tabbar-btn hidden" id="tabbtn-event" data-tab="event">
         <span class="tabbar-icon">🃏</span><span>Evento</span>
+      </button>
+      <button class="tabbar-btn" id="tabbtn-support" data-tab="support">
+        <span class="tabbar-icon">☕</span><span>Apoyo</span>
       </button>
     </div>
   </div>
@@ -349,8 +359,6 @@
         <div class="inventory-grid" id="account-inventory-grid"></div>
 
         <button type="button" class="btn ranking-btn" id="view-ranking-btn">Ver ranking de jugadores</button>
-
-        <a href="https://paypal.me/alexcaste13" target="_blank" rel="noopener" class="btn support-btn" id="support-btn">☕ Apoya el proyecto</a>
       </div>
     </div>
   </div>
@@ -406,9 +414,9 @@
 
   <script src="js/coin3d.js?v=20260819"></script>
   <script src="js/bottle3d.js?v=20260819"></script>
-  <script src="js/skins.js?v=20260819"></script>
+  <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260819b"></script>
+  <script src="js/navigation.js?v=20260819c"></script>
   <script src="js/casino-roulette.js?v=20260819"></script>
   <script src="js/casino-slots.js?v=20260819"></script>
   <script src="js/casino-blackjack.js?v=20260819"></script>
@@ -418,6 +426,7 @@
   <script src="js/account-ranking-auth.js?v=20260819"></script>
   <script src="js/admin.js?v=20260819"></script>
   <script src="js/event.js?v=20260819"></script>
+  <script src="js/support.js?v=20260819"></script>
 
 </body>
 </html>
