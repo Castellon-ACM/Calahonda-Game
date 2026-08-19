@@ -376,6 +376,16 @@ async function adminSendGift(username, amount) {
   }
 }
 
+// ── Ayuda: evita que una petición cuelgue el flujo indefinidamente ────
+function adminWithTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error('timeout')); }, ms);
+    })
+  ]);
+}
+
 // ── Regalo a TODOS ────────────────────────────────────────────────────
 async function adminGiftAll(amount) {
   const btn = document.getElementById('admin-gift-all-btn');
@@ -386,15 +396,20 @@ async function adminGiftAll(amount) {
   let ok = 0;
 
   if (typeof db !== 'undefined' && db) {
-    for (const username of usernames) {
-      try {
-        const ref = db.collection('adminGifts').doc(username);
-        const doc = await ref.get();
-        const existing = doc.exists ? (doc.data().amount || 0) : 0;
-        await ref.set({ amount: existing + amount, updatedAt: Date.now() });
-        ok++;
-      } catch (e) {}
-    }
+    // En paralelo (no uno por uno) y con incremento atómico
+    // (sin leer primero: menos peticiones y sin condiciones de carrera).
+    const results = await Promise.allSettled(
+      usernames.map(function (username) {
+        return adminWithTimeout(
+          db.collection('adminGifts').doc(username).set({
+            amount: firebase.firestore.FieldValue.increment(amount),
+            updatedAt: Date.now()
+          }, { merge: true }),
+          12000
+        );
+      })
+    );
+    ok = results.filter(function (r) { return r.status === 'fulfilled'; }).length;
   } else {
     const localUsers = UserStore.load();
     usernames.forEach(function (u) {
@@ -405,7 +420,12 @@ async function adminGiftAll(amount) {
 
   btn.disabled = false;
   btn.textContent = '🎁 Enviar regalo a todos';
-  adminShowGiftAllMsg('✅ Regalo de ' + amount + ' 🪙 enviado a ' + ok + ' jugadores', true);
+
+  if (ok === usernames.length) {
+    adminShowGiftAllMsg('✅ Regalo de ' + amount + ' 🪙 enviado a ' + ok + ' jugadores', true);
+  } else {
+    adminShowGiftAllMsg('⚠️ Enviado a ' + ok + ' de ' + usernames.length + ' jugadores (algunos fallaron, prueba de nuevo)', false);
+  }
 
   await adminLoadAllUsers();
   adminRenderGlobalStats();
