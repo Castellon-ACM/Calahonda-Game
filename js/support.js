@@ -2,7 +2,7 @@
 //  APOYO: pestaña de donaciones + aviso al admin + regalo especial
 //  Se integra con el panel de admin ya existente (admin.js) sin tocarlo.
 // =====================================================================
-const PAYPAL_LINK = 'https://paypal.me/alexcaste13';
+const BIZUM_NUMBER = '682255281';
 
 // --- Pestaña de Apoyo (usuario) ---
 function renderSupportTab() {
@@ -10,8 +10,9 @@ function renderSupportTab() {
   if (!content) return;
   content.innerHTML =
     '<div class="event-title">☕ Apoya el proyecto</div>' +
-    '<div class="event-subtitle">Si quieres echar una mano con el desarrollo de Alcohol 365, puedes hacer una donación libre y voluntaria por PayPal. No da monedas de forma automática — es solo para apoyar, y como agradecimiento te doy un detalle especial en el juego.</div>' +
-    '<a href="' + PAYPAL_LINK + '" target="_blank" rel="noopener" class="btn support-btn" style="display:block;text-align:center;margin-top:16px;">💛 Donar por PayPal</a>' +
+    '<div class="event-subtitle">Si quieres echar una mano con el desarrollo de Alcohol 365, puedes hacer una donación libre y voluntaria por Bizum, a este número:</div>' +
+    '<div style="text-align:center;font-size:22px;font-weight:800;color:#f4d98a;margin:14px 0;letter-spacing:1px;">' + BIZUM_NUMBER + '</div>' +
+    '<div class="event-subtitle">No da monedas de forma automática — es solo para apoyar, y como agradecimiento te doy un detalle especial en el juego.</div>' +
     '<div class="event-subtitle" style="margin-top:20px;">Cuando hayas donado, avísame aquí para que sepa a quién darle las gracias (y cuánto, para agradecértelo como toca):</div>' +
     '<input type="number" id="support-claim-amount" min="0" step="0.5" placeholder="¿Cuánto has donado? (€, opcional)" class="bet-amount-input" style="margin-top:10px;">' +
     '<button type="button" class="btn" id="support-claim-btn">✅ Ya he donado, avisar</button>' +
