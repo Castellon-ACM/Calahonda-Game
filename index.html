@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Alcohol 365">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=20260819">
+<link rel="stylesheet" href="css/style.css?v=20260819b">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -28,7 +28,6 @@
       console.warn('[App] SW error:', err);
     });
 
-    // Escuchar mensaje del SW cuando hay versión nueva → recargar
     navigator.serviceWorker.addEventListener('message', function (event) {
       if (event.data && event.data.type === 'SW_UPDATED') {
         console.log('[App] Nueva versión detectada:', event.data.version, '— recargando...');
@@ -97,7 +96,7 @@
     </div>
   </div>
 
-  <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino) -->
+  <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino / Evento) -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
       <div class="avatar-btn" id="avatar-btn"></div>
@@ -280,6 +279,13 @@
           </div>
         </div>
       </div>
+
+      <!-- PESTAÑA EVENTO -->
+      <div id="tab-event" class="app-tab hidden">
+        <div class="game">
+          <div id="event-content"></div>
+        </div>
+      </div>
     </div>
 
     <div class="app-tabbar">
@@ -288,6 +294,9 @@
       </button>
       <button class="tabbar-btn" id="tabbtn-casino" data-tab="casino">
         <span class="tabbar-icon">🎰</span><span>Casino</span>
+      </button>
+      <button class="tabbar-btn hidden" id="tabbtn-event" data-tab="event">
+        <span class="tabbar-icon">🃏</span><span>Evento</span>
       </button>
     </div>
   </div>
@@ -386,15 +395,16 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260819"></script>
+  <script src="js/navigation.js?v=20260819b"></script>
   <script src="js/casino-roulette.js?v=20260819"></script>
   <script src="js/casino-slots.js?v=20260819"></script>
   <script src="js/casino-blackjack.js?v=20260819"></script>
   <script src="js/casino-turtles.js?v=20260819"></script>
   <script src="js/casino-cosmetics.js?v=20260819"></script>
-  <script src="js/game-bottles.js?v=20260819"></script>
+  <script src="js/game-bottles.js?v=20260819b"></script>
   <script src="js/account-ranking-auth.js?v=20260819"></script>
   <script src="js/admin.js?v=20260819"></script>
+  <script src="js/event.js?v=20260819"></script>
 
 </body>
 </html>
