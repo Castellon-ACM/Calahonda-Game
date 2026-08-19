@@ -490,9 +490,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!adminAllUsers[adminSelectedUser]) { adminShowMsg('Usuario no encontrado', false); return; }
     adminAllUsers[adminSelectedUser].coins = (adminAllUsers[adminSelectedUser].coins || 0) + amount;
     await adminPersistUser(adminSelectedUser);
-    await adminSendGift(adminSelectedUser, amount);
     document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + adminAllUsers[adminSelectedUser].coins.toLocaleString();
-    adminShowMsg('+' + amount + ' monedas — recibirá popup al entrar', true);
+    adminShowMsg('+' + amount + ' monedas añadidas', true);
     adminRenderGlobalStats();
   });
 
