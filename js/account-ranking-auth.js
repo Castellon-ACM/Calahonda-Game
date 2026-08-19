@@ -65,7 +65,9 @@
       }
       document.getElementById('visitor-title').textContent = 'Colección de ' + username;
       document.getElementById('avatar-btn-visitor').textContent = initial(username);
-      renderInventory(data.inventory, 'visitor-inventory-grid');
+      const stealResultEl = document.getElementById('steal-result');
+      if (stealResultEl) stealResultEl.textContent = '';
+      renderVisitorInventoryWithSteal(username, data.inventory);
       hideAll();
       document.getElementById('visitor-screen').classList.remove('hidden');
     }
