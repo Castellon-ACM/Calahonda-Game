@@ -16,15 +16,26 @@
       return total;
     }
 
-    function renderRanking() {
+    async function renderRanking() {
       document.getElementById('avatar-btn-ranking').textContent = initial(currentUser);
-      const users = UserStore.load();
-      const rows = Object.keys(users).map(function (u) {
-        const d = ensureUserDefaults(u, users[u]);
-        return { username: u, value: computeCollectionValue(d.inventory) };
-      }).sort(function (a, b) { return b.value - a.value; });
-
       const list = document.getElementById('ranking-list');
+      list.innerHTML = '<div class="inventory-empty">Cargando ranking...</div>';
+
+      const globalRows = await fetchGlobalLeaderboard();
+      let rows;
+      if (globalRows) {
+        rows = globalRows.map(function (r) {
+          return { username: r.username, value: r.value, inventory: r.inventory };
+        });
+      } else {
+        // Fallback: Firebase aún no configurado, solo se ve lo local de este dispositivo
+        const users = UserStore.load();
+        rows = Object.keys(users).map(function (u) {
+          const d = ensureUserDefaults(u, users[u]);
+          return { username: u, value: computeCollectionValue(d.inventory), inventory: d.inventory };
+        }).sort(function (a, b) { return b.value - a.value; });
+      }
+
       list.innerHTML = '';
       if (rows.length === 0) {
         list.innerHTML = '<div class="inventory-empty">Todavía no hay jugadores</div>';
@@ -39,15 +50,20 @@
           '<div class="ranking-name">' + r.username + '</div>' +
           '<div class="ranking-value">' + r.value + ' pts</div>';
         row.addEventListener('click', function () {
-          showVisitorProfile(r.username);
+          showVisitorProfile(r.username, r.inventory);
         });
         list.appendChild(row);
       });
     }
 
-    function showVisitorProfile(username) {
-      const users = UserStore.load();
-      const data = ensureUserDefaults(username, users[username]);
+    function showVisitorProfile(username, inventoryOverride) {
+      let data;
+      if (inventoryOverride) {
+        data = { inventory: inventoryOverride };
+      } else {
+        const users = UserStore.load();
+        data = ensureUserDefaults(username, users[username]);
+      }
       document.getElementById('visitor-title').textContent = 'Colección de ' + username;
       document.getElementById('avatar-btn-visitor').textContent = initial(username);
       renderInventory(data.inventory, 'visitor-inventory-grid');
