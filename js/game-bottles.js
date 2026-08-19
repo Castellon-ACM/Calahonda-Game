@@ -26,6 +26,8 @@
     const CLAIM_AMOUNT = 200;
     const CLAIM_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
 
+    let spinMultiplier = 1;
+
     // --- Iconos originales por botella (SVG propio, no fotos reales) ---
     const BOTTLE_STYLE = {
       "Jägermeister": { glass: "#0b3d1f", cap: "#111111", label: "#d9622b" },
@@ -215,6 +217,20 @@
       }
     }
 
+    function updateSpinButtonLabel() {
+      const btn = document.getElementById('spin-btn');
+      if (btn) btn.textContent = 'Girar ruleta (' + (SPIN_COST * spinMultiplier) + ' 🪙)';
+    }
+
+    document.querySelectorAll('.spin-mult-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.spin-mult-btn').forEach(function (b) { b.classList.remove('selected'); });
+        this.classList.add('selected');
+        spinMultiplier = parseInt(this.getAttribute('data-mult'), 10);
+        updateSpinButtonLabel();
+      });
+    });
+
     function renderGame() {
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
@@ -222,6 +238,7 @@
       pushToLeaderboard(currentUser, data.inventory);
       pushUserData(currentUser, data);
       updateClaimButton();
+      updateSpinButtonLabel();
       document.getElementById('spin-btn').disabled = false;
       document.getElementById('spin-result').textContent = '';
       buildIdleReel();
@@ -266,21 +283,31 @@
     document.getElementById('spin-btn').addEventListener('click', function () {
       const spinBtn = this;
       const data = getCurrentUserData();
+      const cost = SPIN_COST * spinMultiplier;
 
-      if (data.coins < SPIN_COST) {
+      if (data.coins < cost) {
         document.getElementById('spin-result').textContent = 'No tienes suficientes monedas';
         return;
       }
 
-      data.coins -= SPIN_COST;
+      data.coins -= cost;
       saveCurrentUserData(data);
       document.getElementById('balance-amount').textContent = data.coins;
       document.getElementById('spin-result').textContent = '';
       spinBtn.disabled = true;
 
+      // Generar todos los premios de esta tirada (x1, x3, x5 o x10)
+      const rewards = [];
+      for (let i = 0; i < spinMultiplier; i++) rewards.push(pickWeightedReward());
+
+      // El de mayor rareza es el que se anima/destaca como resultado principal
+      let best = rewards[0];
+      rewards.forEach(function (r) {
+        if (RARITY_ORDER[r.rarity] > RARITY_ORDER[best.rarity]) best = r;
+      });
+
       const track = document.getElementById('roulette-track');
       const wrap = track.parentElement;
-      const winner = pickWeightedReward();
       const totalItems = 46;
       const winnerIndex = 40;
 
@@ -288,7 +315,7 @@
       track.style.transform = 'translateX(0px)';
       track.innerHTML = '';
       for (let i = 0; i < totalItems; i++) {
-        const reward = (i === winnerIndex) ? winner : randomReward();
+        const reward = (i === winnerIndex) ? best : randomReward();
         track.appendChild(makeReelItem(reward));
       }
 
@@ -304,11 +331,28 @@
 
       setTimeout(function () {
         const fresh = getCurrentUserData();
-        fresh.inventory[winner.name] = (fresh.inventory[winner.name] || 0) + 1;
+        rewards.forEach(function (r) {
+          fresh.inventory[r.name] = (fresh.inventory[r.name] || 0) + 1;
+        });
         saveAndSync(fresh);
         renderInventory(fresh.inventory);
         pushToLeaderboard(currentUser, fresh.inventory);
-        document.getElementById('spin-result').textContent = '¡Has ganado ' + winner.name + '!';
+
+        // Resultado principal: la de mayor rareza. Debajo: el resto de lo que ha salido.
+        const others = rewards.slice();
+        const bestIdx = others.indexOf(best);
+        if (bestIdx !== -1) others.splice(bestIdx, 1);
+
+        let html = '<div>¡Has ganado <b>' + best.name + '</b>!</div>';
+        if (others.length > 0) {
+          const counts = {};
+          others.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
+          const otherList = Object.keys(counts).map(function (n) {
+            return (counts[n] > 1 ? counts[n] + 'x ' : '') + n;
+          }).join(', ');
+          html += '<div style="margin-top:6px;font-size:12px;color:#b8a679;">También: ' + otherList + '</div>';
+        }
+        document.getElementById('spin-result').innerHTML = html;
         spinBtn.disabled = false;
       }, 4300);
     });
