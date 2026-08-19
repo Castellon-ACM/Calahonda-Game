@@ -8,24 +8,6 @@ const ADMIN_PASS = 'papaplaya';
 // ── Inyectar HTML del panel en el DOM ────────────────────────────────
 (function injectAdminHTML() {
   const html = `
-  <!-- Pantalla ADMIN LOGIN -->
-  <div id="admin-login-screen" class="screen hidden">
-    <div class="card" style="margin-top:80px">
-      <h1>🔐 Panel Admin</h1>
-      <div class="field">
-        <label>Usuario</label>
-        <input type="text" id="admin-login-user" placeholder="admin">
-      </div>
-      <div class="field">
-        <label>Contraseña</label>
-        <input type="password" id="admin-login-pass" placeholder="••••••••">
-      </div>
-      <button type="button" class="btn" id="admin-login-btn">Entrar</button>
-      <div class="error" id="admin-login-error" style="display:none">Credenciales incorrectas</div>
-      <button type="button" class="btn logout-btn" id="admin-back-to-login" style="margin-top:12px">← Volver al login</button>
-    </div>
-  </div>
-
   <!-- Pantalla ADMIN PANEL -->
   <div id="admin-screen" class="screen screen-with-topbar hidden">
     <div class="topbar with-back">
@@ -121,50 +103,14 @@ function adminShowMsg(text, ok) {
   setTimeout(function () { el.textContent = ''; }, 3000);
 }
 
-// Inyectar enlace oculto en el login: doble tap en el título abre admin
-(function addAdminTrigger() {
-  let taps = 0, timer;
-  document.addEventListener('DOMContentLoaded', function () {
-    const h1 = document.querySelector('#login-screen h1');
-    if (!h1) return;
-    h1.addEventListener('click', function () {
-      taps++;
-      clearTimeout(timer);
-      if (taps >= 5) {
-        taps = 0;
-        adminHideAll();
-        document.getElementById('admin-login-screen').classList.remove('hidden');
-      }
-      timer = setTimeout(function () { taps = 0; }, 1500);
-    });
-  });
-})();
-
-// ── Login admin ───────────────────────────────────────────────────────
+// ── Eventos ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-
-  document.getElementById('admin-login-btn').addEventListener('click', function () {
-    const u = document.getElementById('admin-login-user').value.trim();
-    const p = document.getElementById('admin-login-pass').value.trim();
-    const err = document.getElementById('admin-login-error');
-    if (u === ADMIN_USER && p === ADMIN_PASS) {
-      err.style.display = 'none';
-      adminHideAll();
-      document.getElementById('admin-screen').classList.remove('hidden');
-      adminLoadPanel();
-    } else {
-      err.style.display = 'block';
-    }
-  });
-
-  document.getElementById('admin-back-to-login').addEventListener('click', function () {
-    adminHideAll();
-    document.getElementById('login-screen').classList.remove('hidden');
-  });
 
   document.getElementById('admin-logout-btn').addEventListener('click', function () {
     adminHideAll();
     document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
   });
 
   document.getElementById('admin-search-btn').addEventListener('click', function () {
@@ -220,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
     adminShowMsg('Contraseña cambiada', true);
   });
 
-  // Banear (pone coins a 0 e inventario vacío, deja la cuenta)
+  // Banear
   document.getElementById('admin-ban-btn').addEventListener('click', function () {
     if (!adminSelectedUser) return;
     if (!confirm('¿Banear a ' + adminSelectedUser + '? Se le vaciará el inventario y monedas.')) return;
@@ -230,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
     users[adminSelectedUser].inventory = {};
     users[adminSelectedUser].banned = true;
     UserStore.save(users);
-    // Eliminar también del leaderboard en Firestore
     if (typeof db !== 'undefined' && db) {
       db.collection('leaderboard').doc(adminSelectedUser).delete().catch(function () {});
     }
@@ -246,7 +191,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const users = UserStore.load();
     delete users[adminSelectedUser];
     UserStore.save(users);
-    // Eliminar del leaderboard en Firestore
     if (typeof db !== 'undefined' && db) {
       db.collection('leaderboard').doc(adminSelectedUser).delete().catch(function () {});
     }
@@ -257,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-// ── Cargar panel principal ────────────────────────────────────────────
+// ── Cargar panel ──────────────────────────────────────────────────────
 function adminLoadPanel() {
   adminRenderGlobalStats();
   adminRenderUserList('');
@@ -267,23 +211,20 @@ async function adminRenderGlobalStats() {
   const statsEl = document.getElementById('admin-stats-content');
   const users = UserStore.load();
   const localCount = Object.keys(users).length;
-
   let firestoreCount = '?';
   let topUser = '?';
   let totalCoins = 0;
 
-  // Monedas totales locales
   Object.keys(users).forEach(function (u) {
     totalCoins += (users[u].coins || 0);
   });
 
-  // Stats de Firestore
   if (typeof db !== 'undefined' && db) {
     try {
       const snap = await db.collection('leaderboard').orderBy('value', 'desc').limit(1).get();
       firestoreCount = (await db.collection('leaderboard').get()).size;
       if (!snap.empty) topUser = snap.docs[0].data().username;
-    } catch (e) { /* Firebase no disponible */ }
+    } catch (e) {}
   }
 
   statsEl.innerHTML =
@@ -342,7 +283,6 @@ function adminOpenUserModal(username) {
   document.getElementById('admin-coins-input').value = '';
   document.getElementById('admin-newpass-input').value = '';
 
-  // Inventario
   const invEl = document.getElementById('admin-modal-inventory');
   const invKeys = Object.keys(inventory);
   if (invKeys.length === 0) {
@@ -355,7 +295,5 @@ function adminOpenUserModal(username) {
 
   document.getElementById('admin-user-modal').classList.remove('hidden');
   document.getElementById('admin-modal-msg').textContent = '';
-
-  // Scroll hasta el modal
   document.getElementById('admin-user-modal').scrollIntoView({ behavior: 'smooth' });
 }

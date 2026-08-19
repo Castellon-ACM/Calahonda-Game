@@ -28,7 +28,6 @@
           return { username: r.username, value: r.value, inventory: r.inventory };
         });
       } else {
-        // Fallback: Firebase aún no configurado, solo se ve lo local de este dispositivo
         const users = UserStore.load();
         rows = Object.keys(users).map(function (u) {
           const d = ensureUserDefaults(u, users[u]);
@@ -165,6 +164,15 @@
       if (!user || !pass) {
         errorMsg.textContent = 'Rellena usuario y contraseña';
         errorMsg.style.display = 'block';
+        return;
+      }
+
+      // Acceso admin directo desde el login normal
+      if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        errorMsg.style.display = 'none';
+        hideAll();
+        document.getElementById('admin-screen').classList.remove('hidden');
+        adminLoadPanel();
         return;
       }
 
