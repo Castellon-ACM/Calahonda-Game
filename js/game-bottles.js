@@ -103,26 +103,21 @@
       UserStore.save(users);
     }
 
-    // Guarda localmente Y sube a Firestore para que el admin lo vea
     function saveAndSync(data) {
       saveCurrentUserData(data);
       pushUserData(currentUser, data);
     }
 
     // Devuelve true si el jugador puede reclamar.
-    // Acepta tanto el formato antiguo (string de fecha "2026-08-19") como
-    // el nuevo (timestamp numérico en ms). Si es string o NaN → puede reclamar.
+    // Acepta formato antiguo (string de fecha) y nuevo (timestamp ms).
     function canClaim(lastClaim) {
       if (!lastClaim) return true;
-      // Formato antiguo: string de fecha → resetear, puede reclamar
       if (typeof lastClaim === 'string') return true;
       const elapsed = Date.now() - lastClaim;
-      // NaN (dato corrupto) → puede reclamar
       if (isNaN(elapsed)) return true;
       return elapsed >= CLAIM_COOLDOWN_MS;
     }
 
-    // Devuelve una string legible con el tiempo restante hasta poder reclamar
     function timeUntilClaim(lastClaim) {
       if (!lastClaim || typeof lastClaim === 'string' || isNaN(lastClaim)) return '';
       const remaining = CLAIM_COOLDOWN_MS - (Date.now() - lastClaim);
@@ -183,7 +178,6 @@
       });
     }
 
-    // Actualiza el botón de claim y arranca el contador regresivo si toca esperar
     let _claimTimer = null;
     function updateClaimButton() {
       const data = getCurrentUserData();
@@ -222,6 +216,8 @@
       document.getElementById('spin-result').textContent = '';
       buildIdleReel();
       renderCosmeticsGame();
+      // Comprobar si el admin ha enviado monedas mientras el jugador estaba fuera
+      checkAdminGift(currentUser);
     }
 
     function buildIdleReel() {
@@ -247,7 +243,7 @@
       const data = getCurrentUserData();
       if (!canClaim(data.lastClaim)) return;
       data.coins += CLAIM_AMOUNT;
-      data.lastClaim = Date.now(); // timestamp numérico, empieza el contador de 4h
+      data.lastClaim = Date.now();
       saveAndSync(data);
       document.getElementById('balance-amount').textContent = data.coins;
       updateClaimButton();
