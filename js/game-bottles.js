@@ -63,7 +63,7 @@
         '</svg>';
     }
 
-    // --- Niveles: nivel 1 = 1ª unidad, nivel 2 = 2 unidades, nivel 3 = 4, nivel 4 = 8... ---
+    // --- Niveles ---
     function levelForCount(count) {
       if (!count || count <= 0) return 0;
       return Math.floor(Math.log2(count)) + 1;
@@ -99,7 +99,14 @@
     function saveCurrentUserData(data) {
       const users = UserStore.load();
       users[currentUser] = data;
+      users[currentUser].updatedAt = Date.now();
       UserStore.save(users);
+    }
+
+    // Guarda localmente Y sube a Firestore para que el admin lo vea
+    function saveAndSync(data) {
+      saveCurrentUserData(data);
+      pushUserData(currentUser, data);
     }
 
     // Devuelve true si el jugador puede reclamar (han pasado ≥4h desde el último claim)
@@ -201,7 +208,9 @@
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
+      // Subir datos completos a Firestore (inventario público + monedas para el admin)
       pushToLeaderboard(currentUser, data.inventory);
+      pushUserData(currentUser, data);
       updateClaimButton();
       document.getElementById('spin-btn').disabled = false;
       document.getElementById('spin-result').textContent = '';
@@ -232,8 +241,8 @@
       const data = getCurrentUserData();
       if (!canClaim(data.lastClaim)) return;
       data.coins += CLAIM_AMOUNT;
-      data.lastClaim = Date.now(); // guardamos timestamp en ms, no string de fecha
-      saveCurrentUserData(data);
+      data.lastClaim = Date.now();
+      saveAndSync(data); // guarda local + Firestore
       document.getElementById('balance-amount').textContent = data.coins;
       updateClaimButton();
     });
@@ -248,7 +257,7 @@
       }
 
       data.coins -= SPIN_COST;
-      saveCurrentUserData(data);
+      saveCurrentUserData(data); // guardado rápido local antes de la animación
       document.getElementById('balance-amount').textContent = data.coins;
       document.getElementById('spin-result').textContent = '';
       spinBtn.disabled = true;
@@ -267,7 +276,7 @@
         track.appendChild(makeReelItem(reward));
       }
 
-      void track.offsetWidth; // forzar reflow
+      void track.offsetWidth;
 
       const wrapWidth = wrap.clientWidth;
       const targetX = -(winnerIndex * ITEM_FULL_WIDTH + ITEM_FULL_WIDTH / 2 - wrapWidth / 2);
@@ -280,7 +289,7 @@
       setTimeout(function () {
         const fresh = getCurrentUserData();
         fresh.inventory[winner.name] = (fresh.inventory[winner.name] || 0) + 1;
-        saveCurrentUserData(fresh);
+        saveAndSync(fresh); // guarda local + Firestore con inventario y monedas actualizados
         renderInventory(fresh.inventory);
         pushToLeaderboard(currentUser, fresh.inventory);
         document.getElementById('spin-result').textContent = '¡Has ganado ' + winner.name + '!';
