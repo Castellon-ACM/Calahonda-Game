@@ -2,16 +2,15 @@
 //  SERVICE WORKER — Alcohol 365
 //  Cachea la app para funcionamiento offline y fuerza recarga
 //  automática cuando hay una versión nueva en GitHub.
+//
+//  ► INSTRUCCIONES: cada vez que hagas un commit con cambios,
+//    cambia el número de CACHE_VERSION (ej: -2, -3, -4...).
+//    Todos los jugadores recibirán la nueva versión automáticamente.
 // =====================================================================
 
-// ── VERSIÓN ───────────────────────────────────────────────────────────
-// Este valor se actualiza automáticamente en cada deploy.
-// El SW compara esta versión con la que tiene guardada:
-// si son distintas, borra la caché vieja y recarga todos los clientes.
-const CACHE_VERSION = 'v20260819-1';
+const CACHE_VERSION = 'v20260819-2';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 
-// Archivos que se cachean al instalar
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -35,9 +34,7 @@ const PRECACHE_URLS = [
   './assets/icon-512.png'
 ];
 
-// ── INSTALL: cachear recursos ─────────────────────────────────────────
 self.addEventListener('install', function (event) {
-  // Activar inmediatamente sin esperar a que cierren las pestañas viejas
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
@@ -48,7 +45,6 @@ self.addEventListener('install', function (event) {
   );
 });
 
-// ── ACTIVATE: borrar cachés antiguas y tomar el control ──────────────
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -61,10 +57,8 @@ self.addEventListener('activate', function (event) {
           })
       );
     }).then(function () {
-      // Tomar control de todos los clientes abiertos inmediatamente
       return self.clients.claim();
     }).then(function () {
-      // Notificar a todos los clientes que hay versión nueva → recargar
       return self.clients.matchAll({ type: 'window' }).then(function (clients) {
         clients.forEach(function (client) {
           client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
@@ -74,17 +68,13 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-// ── FETCH: servir desde caché, actualizar en segundo plano ───────────
 self.addEventListener('fetch', function (event) {
-  // Solo manejar peticiones GET del mismo origen
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  // No interceptar Firebase, CDNs externos ni APIs
   if (url.origin !== location.origin) return;
 
   event.respondWith(
     caches.match(event.request).then(function (cached) {
-      // Fetch en paralelo para actualizar la caché
       const fetched = fetch(event.request).then(function (response) {
         if (response && response.status === 200) {
           const clone = response.clone();
@@ -95,7 +85,6 @@ self.addEventListener('fetch', function (event) {
         return response;
       }).catch(function () { return cached; });
 
-      // Devolver caché inmediatamente si existe, si no esperar al fetch
       return cached || fetched;
     })
   );
