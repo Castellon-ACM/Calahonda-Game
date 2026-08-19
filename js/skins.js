@@ -12,7 +12,8 @@
       { id: 'cape', label: 'Capa de héroe', icon: '🦸' },
       { id: 'santa', label: 'Gorro navideño', icon: '🎅' },
       { id: 'tophat', label: 'Sombrero copa', icon: '🎩' },
-      { id: 'crown', label: 'Corona real', icon: '👑' }
+      { id: 'crown', label: 'Corona real', icon: '👑' },
+      { id: 'supporter', label: 'Corona de mecenas', icon: '💛' }
     ];
 
     let currentBottleName = null;
@@ -117,6 +118,23 @@
           spike.position.set(Math.sin(ang) * 0.24, 0.14, Math.cos(ang) * 0.24);
           group.add(spike);
         }
+        group.position.y = CAP_TOP_Y;
+      } else if (skinId === 'supporter') {
+        // Corona exclusiva de mecenas: igual estructura que la corona real,
+        // pero en tono rosa-dorado para diferenciarla claramente.
+        const mat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, metalness: 0.6, roughness: 0.25, emissive: 0x442233, emissiveIntensity: 0.15 });
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.14, 16, 1, true), mat);
+        band.material.side = THREE.DoubleSide;
+        group.add(band);
+        for (let i = 0; i < 6; i++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.18, 8), mat);
+          const ang = i * (Math.PI * 2 / 6);
+          spike.position.set(Math.sin(ang) * 0.24, 0.15, Math.cos(ang) * 0.24);
+          group.add(spike);
+        }
+        const gem = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffe066, metalness: 0.3, roughness: 0.1, emissive: 0xffcc33, emissiveIntensity: 0.5 }));
+        gem.position.y = 0.2;
+        group.add(gem);
         group.position.y = CAP_TOP_Y;
       }
 
