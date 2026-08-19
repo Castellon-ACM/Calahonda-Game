@@ -220,6 +220,8 @@
       checkAdminGift(currentUser);
       // Comprobar si hay un evento especial activo para este jugador
       checkEventTabVisibility();
+      // Comprobar avisos pendientes (monedas dadas/quitadas, notificaciones del admin...)
+      checkUserNotifications(currentUser);
     }
 
     function buildIdleReel() {
