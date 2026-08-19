@@ -386,6 +386,16 @@
     color: #fff;
     margin-top: 16px;
   }
+  .support-btn {
+    display: block;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid #d4a017;
+    color: #f4d98a;
+    text-align: center;
+    text-decoration: none;
+  }
+  .support-btn:active { opacity: 0.8; }
 
   .screen-body.ranking-body {
     justify-content: flex-start;
