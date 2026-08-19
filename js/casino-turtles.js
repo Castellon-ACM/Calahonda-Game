@@ -26,12 +26,29 @@
         btn.textContent = '🐢 ' + (i + 1);
         btn.style.color = TURTLE_COLORS[i];
         btn.addEventListener('click', function () {
+          if (turtleRacing) return; // bloqueado durante la carrera
           selectedTurtle = i;
           document.querySelectorAll('.turtle-select-btn').forEach(function (b) { b.classList.remove('selected'); });
           btn.classList.add('selected');
         });
         selectRow.appendChild(btn);
       }
+    }
+
+    function turtleLockSelection() {
+      document.querySelectorAll('.turtle-select-btn').forEach(function (b) {
+        b.style.opacity = '0.4';
+        b.style.pointerEvents = 'none';
+        b.style.cursor = 'not-allowed';
+      });
+    }
+
+    function turtleUnlockSelection() {
+      document.querySelectorAll('.turtle-select-btn').forEach(function (b) {
+        b.style.opacity = '';
+        b.style.pointerEvents = '';
+        b.style.cursor = '';
+      });
     }
 
     document.getElementById('turtle-race-btn').addEventListener('click', function () {
@@ -59,6 +76,7 @@
       resultEl.textContent = '';
       turtleRacing = true;
       btn.disabled = true;
+      turtleLockSelection(); // bloquear selección durante la carrera
 
       const durations = [0, 1, 2, 3].map(function () { return 2600 + Math.random() * 1800; });
       let winner = 0;
@@ -92,6 +110,7 @@
         resultEl.textContent = 'Gana la tortuga ' + (winner + 1) + (winner === selectedTurtle ? ' — ¡Ganas ' + payout + ' monedas!' : ' — Pierdes la apuesta');
         turtleRacing = false;
         btn.disabled = false;
+        turtleUnlockSelection(); // desbloquear selección al terminar
       }, maxDuration + 200);
     });
 
