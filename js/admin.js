@@ -60,7 +60,7 @@ const ADMIN_PASS = 'papaplaya';
           <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px;word-break:break-all"></div>
           <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:14px"></div>
 
-          <!-- Dar / quitar monedas — todo en vertical, ancho completo -->
+          <!-- Dar / quitar monedas -->
           <div style="margin-bottom:14px">
             <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
             <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
@@ -91,7 +91,7 @@ const ADMIN_PASS = 'papaplaya';
   </div>
 
   <!-- Popup regalo del admin -->
-  <div id="admin-gift-popup" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+  <div id="admin-gift-popup" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
     <div style="background:#1a1505;border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;border:2px solid #f5c518;box-sizing:border-box">
       <div style="font-size:48px;margin-bottom:12px">🎁</div>
       <div style="color:#f5c518;font-weight:700;font-size:18px;margin-bottom:8px">¡Regalo del administrador!</div>
@@ -386,19 +386,14 @@ async function adminGiftAll(amount) {
   let ok = 0;
 
   if (typeof db !== 'undefined' && db) {
-    const BATCH_SIZE = 400;
-    for (let i = 0; i < usernames.length; i += BATCH_SIZE) {
-      const chunk = usernames.slice(i, i + BATCH_SIZE);
-      // Escribir uno a uno acumulando (batch con increment no siempre disponible en compat SDK)
-      for (const username of chunk) {
-        try {
-          const ref = db.collection('adminGifts').doc(username);
-          const doc = await ref.get();
-          const existing = doc.exists ? (doc.data().amount || 0) : 0;
-          await ref.set({ amount: existing + amount, updatedAt: Date.now() });
-          ok++;
-        } catch (e) {}
-      }
+    for (const username of usernames) {
+      try {
+        const ref = db.collection('adminGifts').doc(username);
+        const doc = await ref.get();
+        const existing = doc.exists ? (doc.data().amount || 0) : 0;
+        await ref.set({ amount: existing + amount, updatedAt: Date.now() });
+        ok++;
+      } catch (e) {}
     }
   } else {
     const localUsers = UserStore.load();
@@ -418,6 +413,8 @@ async function adminGiftAll(amount) {
 }
 
 // ── Comprobar regalo pendiente del admin ──────────────────────────────
+// Solo muestra el popup si el jugador está en la pantalla del juego (app-screen visible).
+// Si Firestore responde tarde y el jugador ya salió o está en login, no mostramos nada.
 async function checkAdminGift(username) {
   if (!username || typeof db === 'undefined' || !db) return;
   try {
@@ -427,26 +424,36 @@ async function checkAdminGift(username) {
     const amount = doc.data().amount || 0;
     if (amount <= 0) { await ref.delete(); return; }
 
+    // Aplicar monedas al jugador local
     const users = UserStore.load();
     if (users[username]) {
       users[username].coins = (users[username].coins || 0) + amount;
       UserStore.save(users);
     }
 
+    // Borrar el regalo para que no se aplique dos veces
     await ref.delete();
 
+    // Solo mostrar el popup si el jugador sigue en la pantalla de juego
+    const appScreen = document.getElementById('app-screen');
+    if (!appScreen || appScreen.classList.contains('hidden')) return;
+
+    // Actualizar balance visible
+    const balanceEl = document.getElementById('balance-amount');
+    if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
+
+    // Sincronizar con Firestore
+    if (typeof pushUserData === 'function' && users[username]) {
+      pushUserData(username, users[username]);
+    }
+
+    // Mostrar popup
     document.getElementById('admin-gift-popup-text').textContent =
       'El administrador te ha regalado ' + amount.toLocaleString() + ' monedas 🪙';
     const popup = document.getElementById('admin-gift-popup');
     popup.classList.remove('hidden');
     popup.style.display = 'flex';
 
-    const balanceEl = document.getElementById('balance-amount');
-    if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
-
-    if (typeof pushUserData === 'function' && users[username]) {
-      pushUserData(username, users[username]);
-    }
   } catch (e) {
     console.warn('No se pudo comprobar regalo del admin:', e);
   }
