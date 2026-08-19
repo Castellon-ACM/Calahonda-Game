@@ -109,15 +109,22 @@
       pushUserData(currentUser, data);
     }
 
-    // Devuelve true si el jugador puede reclamar (han pasado ≥4h desde el último claim)
+    // Devuelve true si el jugador puede reclamar.
+    // Acepta tanto el formato antiguo (string de fecha "2026-08-19") como
+    // el nuevo (timestamp numérico en ms). Si es string o NaN → puede reclamar.
     function canClaim(lastClaim) {
       if (!lastClaim) return true;
-      return (Date.now() - lastClaim) >= CLAIM_COOLDOWN_MS;
+      // Formato antiguo: string de fecha → resetear, puede reclamar
+      if (typeof lastClaim === 'string') return true;
+      const elapsed = Date.now() - lastClaim;
+      // NaN (dato corrupto) → puede reclamar
+      if (isNaN(elapsed)) return true;
+      return elapsed >= CLAIM_COOLDOWN_MS;
     }
 
     // Devuelve una string legible con el tiempo restante hasta poder reclamar
     function timeUntilClaim(lastClaim) {
-      if (!lastClaim) return '';
+      if (!lastClaim || typeof lastClaim === 'string' || isNaN(lastClaim)) return '';
       const remaining = CLAIM_COOLDOWN_MS - (Date.now() - lastClaim);
       if (remaining <= 0) return '';
       const totalSec = Math.ceil(remaining / 1000);
@@ -208,7 +215,6 @@
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
-      // Subir datos completos a Firestore (inventario público + monedas para el admin)
       pushToLeaderboard(currentUser, data.inventory);
       pushUserData(currentUser, data);
       updateClaimButton();
@@ -241,8 +247,8 @@
       const data = getCurrentUserData();
       if (!canClaim(data.lastClaim)) return;
       data.coins += CLAIM_AMOUNT;
-      data.lastClaim = Date.now();
-      saveAndSync(data); // guarda local + Firestore
+      data.lastClaim = Date.now(); // timestamp numérico, empieza el contador de 4h
+      saveAndSync(data);
       document.getElementById('balance-amount').textContent = data.coins;
       updateClaimButton();
     });
@@ -257,7 +263,7 @@
       }
 
       data.coins -= SPIN_COST;
-      saveCurrentUserData(data); // guardado rápido local antes de la animación
+      saveCurrentUserData(data);
       document.getElementById('balance-amount').textContent = data.coins;
       document.getElementById('spin-result').textContent = '';
       spinBtn.disabled = true;
@@ -289,7 +295,7 @@
       setTimeout(function () {
         const fresh = getCurrentUserData();
         fresh.inventory[winner.name] = (fresh.inventory[winner.name] || 0) + 1;
-        saveAndSync(fresh); // guarda local + Firestore con inventario y monedas actualizados
+        saveAndSync(fresh);
         renderInventory(fresh.inventory);
         pushToLeaderboard(currentUser, fresh.inventory);
         document.getElementById('spin-result').textContent = '¡Has ganado ' + winner.name + '!';
