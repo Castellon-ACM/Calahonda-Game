@@ -92,7 +92,8 @@
 
     // --- Modelo 3D real (geometría de cristal limpia, sin logos) para botellas concretas ---
     const REAL_MODEL_PATHS = {
-      "Jägermeister": "assets/jagermeister_bottle.glb"
+      "Jägermeister": "assets/jagermeister_bottle.glb",
+      "Johnnie Walker": "assets/blue_label.glb"
     };
     const realModelCache = {};
 
