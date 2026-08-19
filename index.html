@@ -729,9 +729,7 @@
     font-size: 12px;
     text-align: center;
     padding: 8px 0;
-  }
-
-  /* ---------- Menú del casino ---------- */
+  }  /* ---------- Menú del casino ---------- */
   .casino-menu-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -921,6 +919,89 @@
     border-color: #f4d98a;
     background: #2a2210;
   }
+
+  /* ---------- Detalle 3D de botella ---------- */
+  .bottle-detail-title {
+    color: #f4d98a;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .bottle-detail-level {
+    color: #b8a679;
+    font-size: 14px;
+    margin-top: 16px;
+  }
+  .bottle-detail-bar {
+    max-width: 220px;
+    margin-top: 8px;
+  }
+  .bottle-detail-progress-label {
+    color: #b8a679;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .bottle-detail-hint {
+    color: #6b5f45;
+    font-size: 12px;
+    margin-top: 18px;
+  }
+  .skin-title {
+    color: #b8a679;
+    font-size: 13px;
+    margin-top: 18px;
+    margin-bottom: 10px;
+  }
+  .skin-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 300px;
+  }
+  .skin-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 8px;
+    border-radius: 10px;
+    border: 1px solid #3a2c14;
+    background: #161116;
+    cursor: pointer;
+    width: 66px;
+  }
+  .skin-btn.selected {
+    border-color: #f4d98a;
+    background: #2a2210;
+  }
+  .skin-btn.locked {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .skin-hint {
+    color: #6b5f45;
+    font-size: 11px;
+    text-align: center;
+    margin-top: 12px;
+    max-width: 260px;
+  }
+  .cosmetics-paytable {
+    color: #9a8a63;
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+  .skin-icon { font-size: 22px; }
+  .skin-label {
+    font-size: 8.5px;
+    color: #b8a679;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .inventory-item { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1009,6 +1090,19 @@
 
           <div class="inventory-title">Tu colección</div>
           <div class="inventory-grid" id="inventory-grid"></div>
+
+          <div class="inventory-title">Ruleta de cosméticos</div>
+          <div class="roulette-wrap">
+            <div class="roulette-pointer"></div>
+            <div class="roulette-track" id="cosmetics-track"></div>
+          </div>
+          <button type="button" class="btn spin-btn" id="cosmetics-spin-btn">Girar (80 🪙)</button>
+          <div class="spin-result" id="cosmetics-result"></div>
+          <div class="cosmetics-paytable">
+            <div>😎🎉🧣🎀 comunes · 👔🇪🇸🦸 raras</div>
+            <div>🎅🎩 épicas · 👑 legendaria</div>
+            <div>Si repites una que ya tienes, recuperas la mitad de la apuesta</div>
+          </div>
         </div>
       </div>
 
@@ -1232,6 +1326,27 @@
     </div>
   </div>
 
+  <!-- Pantalla de DETALLE 3D DE BOTELLA -->
+  <div id="bottle-detail-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="bottle-detail-back">←</button>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="screen-body">
+      <div id="bottle-detail-title" class="bottle-detail-title"></div>
+      <canvas id="bottle-3d-canvas" width="260" height="320" style="width:260px;height:320px;touch-action:none;"></canvas>
+      <div id="bottle-detail-level" class="bottle-detail-level"></div>
+      <div class="bottle-progress-wrap bottle-detail-bar">
+        <div class="bottle-progress-fill" id="bottle-detail-fill"></div>
+      </div>
+      <div id="bottle-detail-progress-label" class="bottle-detail-progress-label"></div>
+      <div class="bottle-detail-hint">Arrastra para girarla</div>
+      <div class="skin-title">Viste tu botella</div>
+      <div class="skin-row" id="skin-row"></div>
+      <div class="skin-hint">Consigue skins nuevas en Inicio → Ruleta de cosméticos</div>
+    </div>
+  </div>
+
   <script>
     // =====================================================================
     //  MONEDA 3D (Three.js) — palmera tallada / botella tallada
@@ -1374,6 +1489,295 @@
       animate();
     }
 
+    // =====================================================================
+    //  BOTELLA 3D (detalle de colección) — se puede girar con el dedo
+    // =====================================================================
+    let bottleRenderer = null, bottleScene = null, bottleCamera = null, bottleGroup = null;
+    let bottleDragging = false, bottleLastX = 0;
+    let bottleDetailReturn = 'app';
+
+    function initBottle3DIfNeeded() {
+      if (bottleRenderer) return;
+      const canvas = document.getElementById('bottle-3d-canvas');
+      bottleRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      bottleRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
+      bottleRenderer.setSize(260, 320, false);
+      bottleRenderer.setClearColor(0x000000, 0);
+
+      bottleScene = new THREE.Scene();
+      bottleCamera = new THREE.PerspectiveCamera(32, 260 / 320, 0.1, 100);
+      bottleCamera.position.set(0, 0, 7.5);
+      bottleCamera.lookAt(0, 0, 0);
+
+      bottleScene.add(new THREE.HemisphereLight(0xfff6d8, 0x15100a, 0.9));
+      const dl1 = new THREE.DirectionalLight(0xffffff, 1.1);
+      dl1.position.set(2, 3, 4);
+      bottleScene.add(dl1);
+      const dl2 = new THREE.DirectionalLight(0xffe9b0, 0.5);
+      dl2.position.set(-3, -1, 2);
+      bottleScene.add(dl2);
+
+      canvas.addEventListener('pointerdown', function (e) {
+        bottleDragging = true;
+        bottleLastX = e.clientX;
+      });
+      window.addEventListener('pointerup', function () { bottleDragging = false; });
+      window.addEventListener('pointermove', function (e) {
+        if (bottleDragging && bottleGroup) {
+          const dx = e.clientX - bottleLastX;
+          bottleLastX = e.clientX;
+          bottleGroup.rotation.y += dx * 0.012;
+        }
+      });
+
+      function animate() {
+        if (bottleGroup && !bottleDragging) bottleGroup.rotation.y += 0.006;
+        bottleRenderer.render(bottleScene, bottleCamera);
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function makeBottleLabelTexture(style, name) {
+      const w = 256, h = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = style.glass;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = style.label;
+      ctx.fillRect(0, h * 0.38, w, h * 0.3);
+      ctx.globalAlpha = 1;
+
+      const lightLabels = ['#ffffff', '#f0e4c8', '#f4f0e0', '#dfe6c8'];
+      ctx.fillStyle = lightLabels.indexOf(style.label) !== -1 ? '#20140a' : '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let fontSize = 22;
+      ctx.font = 'bold ' + fontSize + 'px sans-serif';
+      while (ctx.measureText(name).width > w * 0.38 && fontSize > 9) {
+        fontSize -= 1;
+        ctx.font = 'bold ' + fontSize + 'px sans-serif';
+      }
+      ctx.fillText(name, w / 2, h * 0.53);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function showBottleDetail(name, returnTo) {
+      initBottle3DIfNeeded();
+      bottleDetailReturn = returnTo || 'app';
+
+      const style = BOTTLE_STYLE[name] || { glass: '#7c5a10', cap: '#3a2a10', label: '#f4d98a' };
+
+      if (bottleGroup) bottleScene.remove(bottleGroup);
+      bottleGroup = new THREE.Group();
+
+      const tex = makeBottleLabelTexture(style, name);
+      const bodyMat = new THREE.MeshStandardMaterial({ map: tex, metalness: 0.15, roughness: 0.35 });
+      const neckMat = new THREE.MeshStandardMaterial({ color: style.glass, metalness: 0.15, roughness: 0.35 });
+      const capMat = new THREE.MeshStandardMaterial({ color: style.cap, metalness: 0.4, roughness: 0.4 });
+
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.58, 2.4, 32), bodyMat);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.6, 32), neckMat);
+      neck.position.y = 2.4 / 2 + 0.6 / 2;
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.22, 32), capMat);
+      cap.position.y = 2.4 / 2 + 0.6 + 0.22 / 2;
+
+      bottleGroup.add(body, neck, cap);
+      bottleGroup.position.y = -0.41;
+      bottleScene.add(bottleGroup);
+
+      currentBottleName = name;
+      currentBottleSkinObj = null;
+      renderSkinRow(name);
+      applySkinToBottle(name);
+
+      document.getElementById('bottle-detail-title').textContent = name;
+
+      const data = getCurrentUserData();
+      const count = (data.inventory && data.inventory[name]) || 0;
+      const prog = levelProgress(count);
+      document.getElementById('bottle-detail-level').textContent = 'Nivel ' + prog.level;
+      document.getElementById('bottle-detail-fill').style.width = prog.pct + '%';
+      document.getElementById('bottle-detail-progress-label').textContent = count + ' de ' + prog.nextThreshold;
+
+      hideAll();
+      document.getElementById('bottle-detail-screen').classList.remove('hidden');
+    }
+
+    // =====================================================================
+    //  SKINS: viste tu botella (objetos 3D propios, sin logos ni marcas)
+    // =====================================================================
+    const SKINS = [
+      { id: 'none', label: 'Ninguno', icon: '🚫' },
+      { id: 'sunglasses', label: 'Gafas de sol', icon: '😎' },
+      { id: 'party', label: 'Gorro fiesta', icon: '🎉' },
+      { id: 'scarf', label: 'Bufanda', icon: '🧣' },
+      { id: 'bow', label: 'Lazo dorado', icon: '🎀' },
+      { id: 'tie', label: 'Corbata', icon: '👔' },
+      { id: 'spain', label: 'Bandera España', icon: '🇪🇸' },
+      { id: 'cape', label: 'Capa de héroe', icon: '🦸' },
+      { id: 'santa', label: 'Gorro navideño', icon: '🎅' },
+      { id: 'tophat', label: 'Sombrero copa', icon: '🎩' },
+      { id: 'crown', label: 'Corona real', icon: '👑' }
+    ];
+
+    let currentBottleName = null;
+    let currentBottleSkinObj = null;
+    const CAP_TOP_Y = 2.4 / 2 + 0.6 + 0.22; // punto justo encima del tapón
+
+    function buildSkinObject(skinId) {
+      const group = new THREE.Group();
+
+      if (skinId === 'santa') {
+        const hatMat = new THREE.MeshStandardMaterial({ color: 0xb32020, roughness: 0.65 });
+        const trimMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.5, 24), hatMat);
+        cone.position.y = 0.25;
+        cone.rotation.z = 0.18;
+        const trim = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.06, 8, 24), trimMat);
+        trim.rotation.x = Math.PI / 2;
+        const pom = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), trimMat);
+        pom.position.set(0.12, 0.5, 0);
+        group.add(cone, trim, pom);
+        group.position.y = CAP_TOP_Y;
+      } else if (skinId === 'spain') {
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xaa151b, roughness: 0.55 });
+        const yellowMat = new THREE.MeshStandardMaterial({ color: 0xf1bf00, roughness: 0.55 });
+        const r1 = new THREE.Mesh(new THREE.CylinderGeometry(0.615, 0.615, 0.16, 32, 1, true), redMat);
+        const y1 = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.32, 32, 1, true), yellowMat);
+        const r2 = new THREE.Mesh(new THREE.CylinderGeometry(0.615, 0.615, 0.16, 32, 1, true), redMat);
+        r1.position.y = 0.24;
+        r2.position.y = -0.24;
+        group.add(r1, y1, r2);
+        group.position.y = 0.15;
+      } else if (skinId === 'party') {
+        const hatMat = new THREE.MeshStandardMaterial({ color: 0x3d84e0, roughness: 0.6 });
+        const dotMat = new THREE.MeshStandardMaterial({ color: 0xffe066, roughness: 0.6 });
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.55, 24), hatMat);
+        cone.position.y = 0.275;
+        const pom = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), dotMat);
+        pom.position.y = 0.55;
+        group.add(cone, pom);
+        group.position.y = CAP_TOP_Y;
+      } else if (skinId === 'sunglasses') {
+        const dark = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.3 });
+        const lensL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.05), dark);
+        lensL.position.set(-0.13, 0, 0.44);
+        const lensR = lensL.clone();
+        lensR.position.x = 0.13;
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.04), dark);
+        bridge.position.set(0, 0, 0.44);
+        group.add(lensL, lensR, bridge);
+        group.position.y = 1.0;
+      } else if (skinId === 'scarf') {
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xb32020, roughness: 0.75 });
+        const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
+        const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.1, 8, 24), redMat);
+        wrap.rotation.x = Math.PI / 2;
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.05), whiteMat);
+        tail.position.set(0.2, -0.28, 0.3);
+        tail.rotation.z = 0.15;
+        group.add(wrap, tail);
+        group.position.y = 1.5;
+      } else if (skinId === 'bow') {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.4, metalness: 0.5 });
+        const loopL = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 14), mat);
+        loopL.scale.set(1, 0.6, 0.45);
+        loopL.position.set(-0.13, 0, 0.3);
+        const loopR = loopL.clone();
+        loopR.position.x = 0.13;
+        const knot = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 14), mat);
+        knot.position.set(0, 0, 0.3);
+        group.add(loopL, loopR, knot);
+        group.position.y = 1.55;
+      } else if (skinId === 'tie') {
+        const mat = new THREE.MeshStandardMaterial({ color: 0x1a2a6b, roughness: 0.55 });
+        const knot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.06), mat);
+        const body2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.55, 0.05), mat);
+        body2.position.y = -0.32;
+        group.add(knot, body2);
+        group.position.set(0, 1.5, 0.5);
+      } else if (skinId === 'cape') {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xb32020, roughness: 0.75, side: THREE.DoubleSide });
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.35), mat);
+        plane.position.set(0, 0.3, -0.5);
+        group.add(plane);
+      } else if (skinId === 'tophat') {
+        const mat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.45 });
+        const bandMat = new THREE.MeshStandardMaterial({ color: 0x6b1010, roughness: 0.5 });
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.05, 24), mat);
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.42, 24), mat);
+        top.position.y = 0.23;
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.245, 0.245, 0.08, 24), bandMat);
+        band.position.y = 0.05;
+        group.add(brim, top, band);
+        group.position.y = CAP_TOP_Y;
+      } else if (skinId === 'crown') {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 });
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.14, 16, 1, true), mat);
+        band.material.side = THREE.DoubleSide;
+        group.add(band);
+        for (let i = 0; i < 5; i++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.16, 8), mat);
+          const ang = i * (Math.PI * 2 / 5);
+          spike.position.set(Math.sin(ang) * 0.24, 0.14, Math.cos(ang) * 0.24);
+          group.add(spike);
+        }
+        group.position.y = CAP_TOP_Y;
+      }
+
+      return group;
+    }
+
+    function applySkinToBottle(name) {
+      if (currentBottleSkinObj) {
+        bottleGroup.remove(currentBottleSkinObj);
+        currentBottleSkinObj = null;
+      }
+      const data = getCurrentUserData();
+      const equipped = (data.skins && data.skins[name]) || 'none';
+      if (equipped === 'none') return;
+      currentBottleSkinObj = buildSkinObject(equipped);
+      bottleGroup.add(currentBottleSkinObj);
+    }
+
+    function renderSkinRow(name) {
+      const row = document.getElementById('skin-row');
+      row.innerHTML = '';
+      const data = getCurrentUserData();
+      const equipped = (data.skins && data.skins[name]) || 'none';
+      const owned = data.ownedSkins || {};
+      SKINS.forEach(function (skin) {
+        const isOwned = skin.id === 'none' || owned[skin.id];
+        const btn = document.createElement('div');
+        btn.className = 'skin-btn' + (skin.id === equipped ? ' selected' : '') + (isOwned ? '' : ' locked');
+        btn.innerHTML =
+          '<div class="skin-icon">' + (isOwned ? skin.icon : '🔒') + '</div>' +
+          '<div class="skin-label">' + skin.label + '</div>';
+        if (isOwned) {
+          btn.addEventListener('click', function () {
+            const d = getCurrentUserData();
+            if (!d.skins) d.skins = {};
+            if (skin.id === 'none') delete d.skins[name];
+            else d.skins[name] = skin.id;
+            saveCurrentUserData(d);
+            renderSkinRow(name);
+            applySkinToBottle(name);
+          });
+        }
+        row.appendChild(btn);
+      });
+    }
+
+    document.getElementById('bottle-detail-back').addEventListener('click', function () {
+      hideAll();
+      if (bottleDetailReturn === 'account') accountScreen.classList.remove('hidden');
+      else if (bottleDetailReturn === 'visitor') document.getElementById('visitor-screen').classList.remove('hidden');
+      else appScreen.classList.remove('hidden');
+    });
+
     window.addEventListener('load', function () {
       initCoin('coin-login', 176);
       initCoin('coin-register', 120);
@@ -1474,6 +1878,7 @@
       accountScreen.classList.add('hidden');
       document.getElementById('ranking-screen').classList.add('hidden');
       document.getElementById('visitor-screen').classList.add('hidden');
+      document.getElementById('bottle-detail-screen').classList.add('hidden');
     }
 
     function showApp(username) {
@@ -1938,6 +2343,113 @@
       }, maxDuration + 200);
     });
 
+    // =====================================================================
+    //  RULETA DE COSMÉTICOS
+    // =====================================================================
+    const COSMETIC_SKINS = [
+      { id: 'sunglasses', label: 'Gafas de sol', icon: '😎', rarity: 'common' },
+      { id: 'party', label: 'Gorro de fiesta', icon: '🎉', rarity: 'common' },
+      { id: 'scarf', label: 'Bufanda', icon: '🧣', rarity: 'common' },
+      { id: 'bow', label: 'Lazo dorado', icon: '🎀', rarity: 'common' },
+      { id: 'tie', label: 'Corbata', icon: '👔', rarity: 'rare' },
+      { id: 'spain', label: 'Bandera España', icon: '🇪🇸', rarity: 'rare' },
+      { id: 'cape', label: 'Capa de héroe', icon: '🦸', rarity: 'rare' },
+      { id: 'santa', label: 'Gorro navideño', icon: '🎅', rarity: 'epic' },
+      { id: 'tophat', label: 'Sombrero de copa', icon: '🎩', rarity: 'epic' },
+      { id: 'crown', label: 'Corona real', icon: '👑', rarity: 'legendary' }
+    ];
+    const COSMETIC_SPIN_COST = 80;
+
+    function pickWeightedCosmetic() {
+      const roll = Math.random() * 100;
+      let rarity;
+      if (roll < RARITY_WEIGHT.legendary) rarity = 'legendary';
+      else if (roll < RARITY_WEIGHT.legendary + RARITY_WEIGHT.epic) rarity = 'epic';
+      else if (roll < RARITY_WEIGHT.legendary + RARITY_WEIGHT.epic + RARITY_WEIGHT.rare) rarity = 'rare';
+      else rarity = 'common';
+      const pool = COSMETIC_SKINS.filter(function (s) { return s.rarity === rarity; });
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function makeCosmeticReelItem(skin) {
+      const el = document.createElement('div');
+      el.className = 'roulette-item rarity-' + skin.rarity;
+      el.innerHTML =
+        '<div class="skin-icon">' + skin.icon + '</div>' +
+        '<div class="bottle-name">' + skin.label + '</div>';
+      return el;
+    }
+
+    function buildIdleCosmeticReel() {
+      const track = document.getElementById('cosmetics-track');
+      track.style.transition = 'none';
+      track.style.transform = 'translateX(0px)';
+      track.innerHTML = '';
+      for (let i = 0; i < 12; i++) {
+        track.appendChild(makeCosmeticReelItem(COSMETIC_SKINS[Math.floor(Math.random() * COSMETIC_SKINS.length)]));
+      }
+    }
+
+    function renderCosmeticsGame() {
+      document.getElementById('cosmetics-result').textContent = '';
+      buildIdleCosmeticReel();
+    }
+
+    document.getElementById('cosmetics-spin-btn').addEventListener('click', function () {
+      const spinBtn = this;
+      const resultEl = document.getElementById('cosmetics-result');
+      const data = getCurrentUserData();
+
+      if (data.coins < COSMETIC_SPIN_COST) {
+        resultEl.textContent = 'No tienes suficientes monedas';
+        return;
+      }
+
+      data.coins -= COSMETIC_SPIN_COST;
+      saveCurrentUserData(data);
+      updateAllBalances(data.coins);
+      resultEl.textContent = '';
+      spinBtn.disabled = true;
+
+      const track = document.getElementById('cosmetics-track');
+      const wrap = track.parentElement;
+      const winner = pickWeightedCosmetic();
+      const totalItems = 46, winnerIndex = 40;
+
+      track.style.transition = 'none';
+      track.style.transform = 'translateX(0px)';
+      track.innerHTML = '';
+      for (let i = 0; i < totalItems; i++) {
+        const item = (i === winnerIndex) ? winner : COSMETIC_SKINS[Math.floor(Math.random() * COSMETIC_SKINS.length)];
+        track.appendChild(makeCosmeticReelItem(item));
+      }
+
+      void track.offsetWidth;
+      const wrapWidth = wrap.clientWidth;
+      const targetX = -(winnerIndex * ITEM_FULL_WIDTH + ITEM_FULL_WIDTH / 2 - wrapWidth / 2);
+
+      requestAnimationFrame(function () {
+        track.style.transition = 'transform 4.2s cubic-bezier(0.1, 0.75, 0.1, 1)';
+        track.style.transform = 'translateX(' + targetX + 'px)';
+      });
+
+      setTimeout(function () {
+        const fresh = getCurrentUserData();
+        if (!fresh.ownedSkins) fresh.ownedSkins = {};
+        if (fresh.ownedSkins[winner.id]) {
+          const refund = Math.round(COSMETIC_SPIN_COST * 0.5);
+          fresh.coins += refund;
+          resultEl.textContent = 'Ya tenías "' + winner.label + '" — recuperas ' + refund + ' monedas';
+        } else {
+          fresh.ownedSkins[winner.id] = true;
+          resultEl.textContent = '¡Has desbloqueado "' + winner.label + '"!';
+        }
+        saveCurrentUserData(fresh);
+        updateAllBalances(fresh.coins);
+        spinBtn.disabled = false;
+      }, 4300);
+    });
+
     // --- Fichas de casino (seleccionan la cantidad activa) ---
     document.querySelectorAll('.chip[data-amount]').forEach(function (chip) {
       chip.addEventListener('click', function () {
@@ -2334,6 +2846,8 @@
       data = data || {};
       if (typeof data.coins !== 'number') data.coins = 0;
       if (!data.inventory) data.inventory = {};
+      if (!data.skins) data.skins = {};
+      if (!data.ownedSkins) data.ownedSkins = {};
       if (data.lastClaim === undefined) data.lastClaim = null;
       if (!data.bonusGranted && username && username.trim().toLowerCase() === 'caste') {
         data.coins = 100000;
@@ -2371,8 +2885,15 @@
       return pool[Math.floor(Math.random() * pool.length)];
     }
 
+    const INVENTORY_RETURN_MAP = {
+      'inventory-grid': 'app',
+      'account-inventory-grid': 'account',
+      'visitor-inventory-grid': 'visitor'
+    };
+
     function renderInventory(inventory, gridId) {
       const grid = document.getElementById(gridId || 'inventory-grid');
+      const returnTo = INVENTORY_RETURN_MAP[gridId || 'inventory-grid'] || 'app';
       const names = Object.keys(inventory || {});
       if (names.length === 0) {
         grid.innerHTML = '<div class="inventory-empty">Aún no tienes botellas. ¡Gira la ruleta!</div>';
@@ -2391,6 +2912,7 @@
           '<div class="bottle-name">' + name + '</div>' +
           '<div class="bottle-progress-wrap"><div class="bottle-progress-fill" style="width:' + prog.pct + '%"></div></div>' +
           '<div class="bottle-progress-label">' + count + ' de ' + prog.nextThreshold + '</div>';
+        el.addEventListener('click', function () { showBottleDetail(name, returnTo); });
         grid.appendChild(el);
       });
     }
@@ -2412,6 +2934,7 @@
       document.getElementById('spin-btn').disabled = false;
       document.getElementById('spin-result').textContent = '';
       buildIdleReel();
+      renderCosmeticsGame();
     }
 
     function buildIdleReel() {
