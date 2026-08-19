@@ -34,6 +34,7 @@
       document.getElementById('tabbtn-home').classList.add('active');
       document.getElementById('tab-home').classList.remove('hidden');
       document.getElementById('tab-casino').classList.add('hidden');
+      document.getElementById('tab-event').classList.add('hidden');
 
       renderGame();
     }
@@ -45,7 +46,9 @@
         const tab = this.getAttribute('data-tab');
         document.getElementById('tab-home').classList.toggle('hidden', tab !== 'home');
         document.getElementById('tab-casino').classList.toggle('hidden', tab !== 'casino');
+        document.getElementById('tab-event').classList.toggle('hidden', tab !== 'event');
         if (tab === 'casino') renderCasino();
+        if (tab === 'event') renderEventTab();
       });
     });
 
