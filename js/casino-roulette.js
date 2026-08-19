@@ -3,8 +3,11 @@
     // =====================================================================
     const WHEEL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
     const RED_NUMBERS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+    const ROULETTE_HISTORY_MAX = 30;
+    const ROULETTE_HISTORY_SHOWN = 12;
 
     let betSlip = []; // [{ type, value, label, amount }, ...] — apuestas ya añadidas
+    let lastBetSlip = []; // última apuesta jugada, para "repetir apuesta"
     let wheelRotation = 0;
     let ballRotation = 0;
 
@@ -42,6 +45,7 @@
         const y = center - radius * Math.cos(rad);
         const label = document.createElement('div');
         label.className = 'wheel-num';
+        label.dataset.num = num;
         label.textContent = num;
         label.style.left = (x - labelW / 2) + 'px';
         label.style.top = (y - labelH / 2) + 'px';
@@ -49,6 +53,57 @@
         wheel.appendChild(label);
       });
       wheel.dataset.built = '1';
+    }
+
+    // --- Historial de números salidos + números fríos/calientes ---
+    function pushRouletteHistory(number) {
+      const data = getCurrentUserData();
+      if (!data.rouletteHistory) data.rouletteHistory = [];
+      data.rouletteHistory.push(number);
+      if (data.rouletteHistory.length > ROULETTE_HISTORY_MAX) {
+        data.rouletteHistory = data.rouletteHistory.slice(-ROULETTE_HISTORY_MAX);
+      }
+      saveCurrentUserData(data);
+    }
+
+    function renderRouletteHistory() {
+      const el = document.getElementById('roulette-history');
+      if (!el) return;
+      const data = getCurrentUserData();
+      const history = (data.rouletteHistory || []).slice(-ROULETTE_HISTORY_SHOWN).reverse();
+      if (history.length === 0) {
+        el.innerHTML = '<div class="roulette-history-empty">Aún no hay tiradas en esta ruleta</div>';
+        return;
+      }
+      el.innerHTML = history.map(function (n) {
+        const c = colorOf(n);
+        const cls = c === 'red' ? 'rh-red' : (c === 'black' ? 'rh-black' : 'rh-green');
+        return '<span class="roulette-history-chip ' + cls + '">' + n + '</span>';
+      }).join('');
+    }
+
+    function updateWheelHotCold() {
+      const data = getCurrentUserData();
+      const history = data.rouletteHistory || [];
+      const counts = {};
+      for (let n = 0; n <= 36; n++) counts[n] = 0;
+      history.forEach(function (n) { counts[n] = (counts[n] || 0) + 1; });
+
+      const sorted = Object.keys(counts).map(Number).sort(function (a, b) { return counts[b] - counts[a]; });
+      const hotSet = {}, coldSet = {};
+
+      if (history.length >= 8) {
+        sorted.slice(0, 3).forEach(function (n) { if (counts[n] > 0) hotSet[n] = true; });
+        sorted.slice(-3).forEach(function (n) { if (!hotSet[n]) coldSet[n] = true; });
+      }
+
+      document.querySelectorAll('.wheel-num').forEach(function (label) {
+        const n = parseInt(label.dataset.num, 10);
+        let suffix = '';
+        if (hotSet[n]) suffix = ' 🔥';
+        else if (coldSet[n]) suffix = ' ❄️';
+        label.textContent = n + suffix;
+      });
     }
 
     function renderCasino() {
@@ -90,6 +145,8 @@
       document.getElementById('chip-eraser').classList.remove('active');
       document.getElementById('roulette-table').classList.remove('erasing');
       renderBetSlip();
+      renderRouletteHistory();
+      updateWheelHotCold();
     }
 
     function setupChipGroup(className, inputId) {
