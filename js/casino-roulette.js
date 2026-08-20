@@ -99,10 +99,15 @@
 
       document.querySelectorAll('.wheel-num').forEach(function (label) {
         const n = parseInt(label.dataset.num, 10);
-        let suffix = '';
-        if (hotSet[n]) suffix = ' 🔥';
-        else if (coldSet[n]) suffix = ' ❄️';
-        label.textContent = n + suffix;
+        let icon = '';
+        if (hotSet[n]) icon = '🔥';
+        else if (coldSet[n]) icon = '❄️';
+        // Estructura fija en dos líneas (número arriba, icono siempre debajo)
+        // para que un número de una cifra se vea igual que uno de dos cifras
+        // y no se descuadre el diseño de la ruleta.
+        label.innerHTML = icon
+          ? '<span class="wheel-num-value">' + n + '</span><span class="wheel-num-icon">' + icon + '</span>'
+          : String(n);
       });
     }
 
