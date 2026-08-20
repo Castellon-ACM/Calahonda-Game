@@ -415,6 +415,40 @@ async function adminPersistUser(username) {
   }
 }
 
+// Ajusta las monedas de un jugador de forma ATÓMICA y fiable:
+// - Lee el saldo REAL desde Firestore justo en ese instante (no un valor
+//   cacheado que pudiera estar desactualizado si el jugador jugó mientras tanto).
+// - Solo confirma éxito si el guardado en Firestore se ha hecho de verdad.
+// Devuelve { ok, coins, reason }.
+async function adminAdjustCoins(username, delta) {
+  if (typeof db === 'undefined' || !db) {
+    return { ok: false, reason: 'Sin conexión a Firestore' };
+  }
+  try {
+    const ref = db.collection('users').doc(username);
+    let newCoins = null;
+    await db.runTransaction(async function (tx) {
+      const doc = await tx.get(ref);
+      const current = doc.exists ? (doc.data().coins || 0) : 0;
+      newCoins = Math.max(0, current + delta);
+      tx.set(ref, { coins: newCoins, updatedAt: Date.now() }, { merge: true });
+    });
+
+    // Reflejar también en localStorage si el jugador está registrado en este dispositivo
+    const localUsers = UserStore.load();
+    if (localUsers[username]) {
+      localUsers[username].coins = newCoins;
+      UserStore.save(localUsers);
+    }
+    if (adminAllUsers[username]) adminAllUsers[username].coins = newCoins;
+
+    return { ok: true, coins: newCoins };
+  } catch (e) {
+    console.warn('No se pudo ajustar monedas:', e);
+    return { ok: false, reason: e && e.message ? e.message : 'Error desconocido' };
+  }
+}
+
 async function adminDeleteUser(username) {
   delete adminAllUsers[username];
   const localUsers = UserStore.load();
@@ -713,29 +747,39 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
   });
 
-  // Dar monedas
+  // Dar monedas (ahora lee/escribe el saldo REAL en Firestore, con confirmación real)
   document.getElementById('admin-give-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
     if (isNaN(amount) || amount <= 0) { adminShowMsg('Cantidad inválida', false); return; }
-    if (!adminAllUsers[adminSelectedUser]) { adminShowMsg('Usuario no encontrado', false); return; }
-    adminAllUsers[adminSelectedUser].coins = (adminAllUsers[adminSelectedUser].coins || 0) + amount;
-    await adminPersistUser(adminSelectedUser);
-    document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + adminAllUsers[adminSelectedUser].coins.toLocaleString();
-    adminShowMsg('+' + amount + ' monedas añadidas', true);
+    const btn = this;
+    btn.disabled = true;
+    const result = await adminAdjustCoins(adminSelectedUser, amount);
+    btn.disabled = false;
+    if (!result.ok) {
+      adminShowMsg('❌ No se guardó: ' + result.reason, false);
+      return;
+    }
+    document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + result.coins.toLocaleString();
+    adminShowMsg('✅ +' + amount + ' monedas añadidas (confirmado en Firestore)', true);
     adminRenderGlobalStats();
   });
 
-  // Quitar monedas
+  // Quitar monedas (mismo mecanismo fiable)
   document.getElementById('admin-take-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
     if (isNaN(amount) || amount <= 0) { adminShowMsg('Cantidad inválida', false); return; }
-    if (!adminAllUsers[adminSelectedUser]) { adminShowMsg('Usuario no encontrado', false); return; }
-    adminAllUsers[adminSelectedUser].coins = Math.max(0, (adminAllUsers[adminSelectedUser].coins || 0) - amount);
-    await adminPersistUser(adminSelectedUser);
-    document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + adminAllUsers[adminSelectedUser].coins.toLocaleString();
-    adminShowMsg('-' + amount + ' monedas quitadas', true);
+    const btn = this;
+    btn.disabled = true;
+    const result = await adminAdjustCoins(adminSelectedUser, -amount);
+    btn.disabled = false;
+    if (!result.ok) {
+      adminShowMsg('❌ No se guardó: ' + result.reason, false);
+      return;
+    }
+    document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + result.coins.toLocaleString();
+    adminShowMsg('✅ -' + amount + ' monedas quitadas (confirmado en Firestore)', true);
     adminRenderGlobalStats();
   });
 
