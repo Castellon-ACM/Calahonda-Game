@@ -30,18 +30,20 @@ let _adOverlayTimer = null;
 
 // Cargamos el script del anuncio DENTRO de un iframe aislado ("sandbox").
 // El sandbox le permite ejecutar su JS y abrir su ventana/pestaña nueva
-// (allow-scripts, allow-popups), pero técnicamente le PROHÍBE redirigir o
-// tocar la página principal del juego (no incluimos allow-top-navigation).
-// Esto es una práctica estándar y legítima para blindar la web frente a
-// anuncios que, cuando el navegador bloquea la ventana nueva, intentan
-// redirigir la pestaña actual como alternativa. No afecta ni interfiere
-// con el anuncio en sí (la impresión cuenta igual), solo contiene dónde
-// puede actuar el script.
+// (allow-scripts, allow-popups), y ahora también le damos permiso para
+// navegar la pestaña principal PERO SOLO si hay un gesto real del usuario
+// de por medio (allow-top-navigation-by-user-activation) — que es
+// justo el caso, ya que esto solo se dispara al pulsar el botón. Sin este
+// permiso, muchos scripts de anuncios detectan que no tienen posibilidad
+// de navegación y directamente no cargan ningún anuncio (por eso dejaron
+// de contar impresiones). Con este permiso más fino, el anuncio puede
+// volver a funcionar con normalidad, pero sigue sin poder redirigir la
+// web por su cuenta sin que el jugador haya hecho clic en algo primero.
 function loadPopunderAd() {
   try {
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none;';
-    iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin');
+    iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-top-navigation-by-user-activation allow-forms allow-modals');
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     doc.open();
