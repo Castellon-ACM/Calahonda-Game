@@ -30,7 +30,7 @@
       hideAll();
       appScreen.classList.remove('hidden');
 
-      // Volver siempre a la pestaña “Inicio” al entrar
+      // Volver siempre a la pestaña "Inicio" al entrar
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
       ['tab-video','tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
@@ -53,8 +53,23 @@
         checkAdminGift(currentUser);
         checkEventTabVisibility();
         checkUserNotifications(currentUser);
+        // Sincronizar monedas desde Firestore para que los cambios del admin
+        // (dar/quitar monedas) lleguen sin necesidad de cerrar sesión.
+        if (typeof syncCoinsFromFirestore === 'function') {
+          syncCoinsFromFirestore(currentUser);
+        }
       }, 20000);
     }
+
+    // Sincronizar monedas también cuando el usuario vuelve a la pestaña del navegador
+    // (por ejemplo, tras haber estado en otra app o pestaña mientras el admin actuaba).
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && currentUser) {
+        if (typeof syncCoinsFromFirestore === 'function') {
+          syncCoinsFromFirestore(currentUser);
+        }
+      }
+    });
 
     // --- Tabbar ---
     document.querySelectorAll('.tabbar-btn').forEach(function (btn) {
