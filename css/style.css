@@ -1128,3 +1128,27 @@
     white-space: nowrap;
     overflow: hidden;
   }
+
+  /* ---------- Multiplicador de tiradas (ruleta de botellas) ---------- */
+  .spin-mult-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .spin-mult-btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1px solid #3a2c14;
+    background: #161116;
+    color: #b8a679;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .spin-mult-btn.selected {
+    border-color: #f4d98a;
+    background: #2a2210;
+    color: #f4d98a;
+  }
+  .spin-mult-btn:active { opacity: 0.8; }
