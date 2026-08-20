@@ -102,6 +102,12 @@
   <!-- Pantalla tras entrar: topbar + pestañas -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
+      <button type="button" class="topbar-icon-btn tabbar-btn" id="tabbtn-video" data-tab="video" aria-label="Vídeo" style="background:none;border:none;cursor:pointer;padding:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;flex:none;">
+        <span class="tabbar-icon" style="font-size:22px;">📺</span>
+      </button>
+      <button type="button" class="topbar-icon-btn tabbar-btn" id="tabbtn-ranking" data-tab="ranking" aria-label="Ranking" style="background:none;border:none;cursor:pointer;padding:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;flex:none;">
+        <span class="tabbar-icon" style="font-size:22px;">🏆</span>
+      </button>
       <button type="button" class="news-btn" id="news-btn" aria-label="Novedades">
         <span class="news-icon">✉️</span>
         <span class="news-badge hidden" id="news-badge">0</span>
@@ -293,12 +299,6 @@
     </div>
 
     <div class="app-tabbar">
-      <button class="tabbar-btn" id="tabbtn-video" data-tab="video">
-        <span class="tabbar-icon">📺</span><span>Vídeo</span>
-      </button>
-      <button class="tabbar-btn" id="tabbtn-ranking" data-tab="ranking">
-        <span class="tabbar-icon">🏆</span><span>Ranking</span>
-      </button>
       <button class="tabbar-btn active" id="tabbtn-home" data-tab="home">
         <span class="tabbar-icon">🏠</span><span>Inicio</span>
       </button>
@@ -426,7 +426,7 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260820c"></script>
+  <script src="js/navigation.js?v=20260820d"></script>
   <script src="js/announcements.js?v=20260820a"></script>
   <script src="js/casino-roulette.js?v=20260820a"></script>
   <script src="js/casino-slots.js?v=20260819"></script>
