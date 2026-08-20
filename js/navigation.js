@@ -33,7 +33,7 @@
       // Volver siempre a la pestaña “Inicio” al entrar
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
-      ['tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
+      ['tab-video','tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
         document.getElementById(id).classList.add('hidden');
       });
       document.getElementById('tab-home').classList.remove('hidden');
@@ -72,7 +72,7 @@
         document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
         this.classList.add('active');
 
-        ['tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
+        ['tab-video','tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
           document.getElementById(id).classList.add('hidden');
         });
         document.getElementById('tab-' + tab).classList.remove('hidden');
