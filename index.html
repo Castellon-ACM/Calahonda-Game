@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Alcohol 365">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=20260820a">
+<link rel="stylesheet" href="css/style.css?v=20260820b">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -110,6 +110,10 @@
   <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino / Evento / Apoyo) -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
+      <button type="button" class="news-btn" id="news-btn" aria-label="Novedades">
+        <span class="news-icon">✉️</span>
+        <span class="news-badge hidden" id="news-badge">0</span>
+      </button>
       <div class="avatar-btn" id="avatar-btn"></div>
     </div>
 
@@ -407,6 +411,20 @@
     </div>
   </div>
 
+  <!-- Pantalla de NOVEDADES -->
+  <div id="news-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="news-back">←</button>
+      <div class="avatar-btn" id="avatar-btn-news"></div>
+    </div>
+    <div class="screen-body ranking-body">
+      <div class="card">
+        <h1>Novedades</h1>
+        <div id="news-list"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Pantalla de DETALLE 3D DE BOTELLA -->
   <div id="bottle-detail-screen" class="screen screen-with-topbar hidden">
     <div class="topbar with-back">
@@ -432,14 +450,15 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260819d"></script>
+  <script src="js/navigation.js?v=20260820a"></script>
+  <script src="js/announcements.js?v=20260820a"></script>
   <script src="js/casino-roulette.js?v=20260820a"></script>
   <script src="js/casino-slots.js?v=20260819"></script>
   <script src="js/casino-blackjack.js?v=20260819"></script>
   <script src="js/casino-turtles.js?v=20260819"></script>
   <script src="js/casino-cosmetics.js?v=20260819b"></script>
   <script src="js/casino-poker.js?v=20260820a"></script>
-  <script src="js/game-bottles.js?v=20260819d"></script>
+  <script src="js/game-bottles.js?v=20260820a"></script>
   <script src="js/account-ranking-auth.js?v=20260819b"></script>
   <script src="js/admin.js?v=20260819"></script>
   <script src="js/event.js?v=20260819b"></script>
