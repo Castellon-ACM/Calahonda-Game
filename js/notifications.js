@@ -29,6 +29,16 @@ async function checkUserNotifications(username) {
     // Limpiar antes de mostrar, para que no se repita si falla algo después
     await ref.set({ messages: [] }, { merge: true });
 
+    // Sincronizar monedas/inventario reales desde Firestore ANTES de mostrar el aviso.
+    // Así, si el mensaje es de un regalo de otro jugador (que ya se sumó en Firestore
+    // al enviarse), el saldo en pantalla queda al día sin tener que cerrar sesión.
+    if (typeof pullUserData === 'function') {
+      await pullUserData(username);
+      const fresh = getCurrentUserData();
+      if (typeof updateAllBalances === 'function') updateAllBalances(fresh.coins);
+      if (typeof renderInventory === 'function') renderInventory(fresh.inventory);
+    }
+
     const appScreen = document.getElementById('app-screen');
     if (!appScreen || appScreen.classList.contains('hidden')) return;
 
