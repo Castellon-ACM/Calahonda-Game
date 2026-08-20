@@ -8,9 +8,9 @@ const STOPWATCH_REWARD = 500;
 const STOPWATCH_MAX_ATTEMPTS = 5;
 const STOPWATCH_TARGET = 5.00;
 
-// ── Inyectar las secciones de evento dentro del panel de admin ───────
+// ── Inyectar las secciones de evento dentro de la pestaña "Eventos y avisos" ───
 (function injectAdminEventHTML() {
-  const card = document.querySelector('#admin-screen .card');
+  const card = document.getElementById('admin-tab-events');
   if (!card) return;
   const html = `
     <div style="background:#1a1505;border-radius:12px;padding:14px;margin:16px 0;border:1px solid #f5c51833">
