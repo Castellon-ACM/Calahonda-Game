@@ -11,6 +11,11 @@
 // (o no) en el instante en que se dispara el script de abajo, según haya o
 // no demanda de anuncios en ese momento — el bloqueo es solo para que el
 // jugador tenga que esperar antes de poder seguir jugando.
+//
+// El overlay de abajo es nuestra propia pantalla (no el anuncio en sí), así
+// que sí podemos hacer que capture cualquier clic mientras está visible,
+// para que ningún toque accidental del jugador llegue al juego de detrás
+// ni pueda volver a disparar nada por error.
 // =====================================================================
 const AD_REWARD_AMOUNT = 20;
 const AD_WATCH_SECONDS = 10;
@@ -46,6 +51,14 @@ function timeUntilAd(lastAdWatch) {
   return m + 'm ' + String(s).padStart(2, '0') + 's';
 }
 
+// Traga cualquier clic para que no llegue a nada de detrás (ni al juego,
+// ni a un posible listener global del script de anuncios).
+function _swallowClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+}
+
 // ── Overlay de pantalla completa que bloquea la app mientras "dura" el anuncio ──
 function ensureAdOverlay() {
   if (document.getElementById('ad-overlay')) return;
@@ -61,6 +74,11 @@ function ensureAdOverlay() {
     '<div style="color:#ccc;font-size:14px;margin-bottom:22px">No cierres ni cambies de pestaña hasta que termine</div>' +
     '<div id="ad-overlay-countdown" style="color:#fff;font-size:40px;font-weight:700;margin-bottom:10px">' + AD_WATCH_SECONDS + '</div>' +
     '<div style="color:#888;font-size:12px">Recibirás tus monedas al terminar</div>';
+
+  // El propio overlay traga sus clics (por si alguien toca la pantalla mientras espera)
+  overlay.addEventListener('click', _swallowClick, true);
+  overlay.addEventListener('touchend', _swallowClick, true);
+
   document.body.appendChild(overlay);
 }
 
@@ -72,6 +90,11 @@ function showAdOverlay(onComplete) {
   countdownEl.textContent = remaining;
   overlay.style.display = 'flex';
 
+  // Además del propio overlay, capturamos cualquier clic en TODA la página
+  // mientras dure la cuenta atrás, para que nada pueda "colarse" por detrás.
+  document.addEventListener('click', _swallowClick, true);
+  document.addEventListener('touchend', _swallowClick, true);
+
   if (_adOverlayTimer) clearInterval(_adOverlayTimer);
   _adOverlayTimer = setInterval(function () {
     remaining -= 1;
@@ -79,6 +102,8 @@ function showAdOverlay(onComplete) {
       clearInterval(_adOverlayTimer);
       _adOverlayTimer = null;
       overlay.style.display = 'none';
+      document.removeEventListener('click', _swallowClick, true);
+      document.removeEventListener('touchend', _swallowClick, true);
       onComplete();
     } else {
       countdownEl.textContent = remaining;
