@@ -51,7 +51,7 @@ async function submitDonationClaim() {
 
 // --- Panel de admin: inyectar sección de avisos pendientes ---
 (function injectAdminSupportHTML() {
-  const card = document.querySelector('#admin-screen .card');
+  const card = document.getElementById('admin-tab-events');
   if (!card) return;
   const html = `
     <div style="background:#1a1505;border-radius:12px;padding:14px;margin:16px 0;border:1px solid #f5c51833">
