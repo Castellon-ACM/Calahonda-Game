@@ -45,7 +45,7 @@
       }
 
       data.coins -= betAmount;
-      saveCurrentUserData(data);
+      saveAndSync(data);
       updateAllBalances(data.coins);
       resultEl.textContent = '';
       const banner = document.getElementById('slots-win-banner');
@@ -78,7 +78,7 @@
         }
         const fresh = getCurrentUserData();
         fresh.coins += payout;
-        saveCurrentUserData(fresh);
+        saveAndSync(fresh);
         updateAllBalances(fresh.coins);
 
         if (payout > betAmount) {
