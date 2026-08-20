@@ -13,7 +13,7 @@
 // jugador tenga que esperar antes de poder seguir jugando.
 // =====================================================================
 const AD_REWARD_AMOUNT = 20;
-const AD_WATCH_SECONDS = 15;
+const AD_WATCH_SECONDS = 10;
 const AD_REWARD_COOLDOWN_MS = 1 * 60 * 1000; // 1 minuto
 
 let _adOverlayTimer = null;
