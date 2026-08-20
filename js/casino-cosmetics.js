@@ -61,7 +61,7 @@
       }
 
       data.coins -= COSMETIC_SPIN_COST;
-      saveCurrentUserData(data);
+      saveAndSync(data);
       updateAllBalances(data.coins);
       resultEl.textContent = '';
       spinBtn.disabled = true;
@@ -99,7 +99,7 @@
           fresh.ownedSkins[winner.id] = true;
           resultEl.textContent = '¡Has desbloqueado "' + winner.label + '"!';
         }
-        saveCurrentUserData(fresh);
+        saveAndSync(fresh);
         updateAllBalances(fresh.coins);
         spinBtn.disabled = false;
       }, 4300);
@@ -380,7 +380,7 @@
       }
 
       data.coins -= totalWager;
-      saveCurrentUserData(data);
+      saveAndSync(data);
       updateAllBalances(data.coins);
       resultEl.textContent = '';
       spinBtn.disabled = true;
@@ -402,7 +402,7 @@
 
         const fresh = getCurrentUserData();
         fresh.coins += totalPayout;
-        saveCurrentUserData(fresh);
+        saveAndSync(fresh);
         updateAllBalances(fresh.coins);
 
         // Guardar en el historial + refrescar hielo/fuego
