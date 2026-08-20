@@ -266,18 +266,27 @@
       }
 
       // Migración: si la cuenta aún no tenía hash (contraseña antigua en texto plano),
-      // lo generamos ahora y lo subimos al servidor para que ya se pueda entrar
-      // desde cualquier otro dispositivo a partir de este momento.
+      // lo generamos ahora para que ya se pueda entrar desde cualquier otro dispositivo
+      // a partir de este momento (se sube al servidor más abajo, DESPUÉS de bajar los
+      // datos reales, para no pisar nada).
       if (!localUser.passwordHash) {
         localUser.passwordHash = passwordHash;
         delete localUser.password;
         users[user] = localUser;
         UserStore.save(users);
       }
-      pushUserData(user, localUser);
 
+      // IMPORTANTE: primero bajamos los datos reales del servidor (monedas/inventario
+      // que el admin pueda haber cambiado mientras este dispositivo no estaba conectado)
+      // y SOLO DESPUÉS subimos algo (p. ej. el hash de contraseña migrado arriba).
+      // Si esto se hiciera al revés, un cambio del admin (como dar monedas) se podría
+      // pisar con los datos viejos que este dispositivo tenía guardados localmente.
       errorMsg.style.display = 'none';
       await pullUserData(user);
+      const refreshedUsers = UserStore.load();
+      const refreshedUser = refreshedUsers[user] || localUser;
+      pushUserData(user, refreshedUser);
+
       showApp(user);
     });
 
