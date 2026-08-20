@@ -88,6 +88,7 @@
       if (!data.skins) data.skins = {};
       if (!data.ownedSkins) data.ownedSkins = {};
       if (data.lastClaim === undefined) data.lastClaim = null;
+      if (typeof data.lastSeenAnnouncement !== 'number') data.lastSeenAnnouncement = 0;
       return data;
     }
 
@@ -249,6 +250,8 @@
       checkEventTabVisibility();
       // Comprobar avisos pendientes (monedas dadas/quitadas, notificaciones del admin...)
       checkUserNotifications(currentUser);
+      // Actualizar el contador de novedades sin leer
+      updateNewsBadge();
     }
 
     function buildIdleReel() {
