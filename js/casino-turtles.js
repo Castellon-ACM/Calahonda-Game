@@ -71,7 +71,7 @@
       }
 
       data.coins -= betAmount;
-      saveCurrentUserData(data);
+      saveAndSync(data);
       updateAllBalances(data.coins);
       resultEl.textContent = '';
       turtleRacing = true;
@@ -105,7 +105,7 @@
           payout = Math.round(betAmount * 3);
           fresh.coins += payout;
         }
-        saveCurrentUserData(fresh);
+        saveAndSync(fresh);
         updateAllBalances(fresh.coins);
         resultEl.textContent = 'Gana la tortuga ' + (winner + 1) + (winner === selectedTurtle ? ' — ¡Ganas ' + payout + ' monedas!' : ' — Pierdes la apuesta');
         turtleRacing = false;
