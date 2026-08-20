@@ -72,7 +72,7 @@ const ADMIN_PASS = 'papaplaya';
 
             <!-- Cambiar contraseña -->
             <div style="margin-bottom:14px">
-              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#555">(solo si está en este dispositivo)</span></div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#555">(se sincroniza en todos los dispositivos)</span></div>
               <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
               <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">💾 Guardar contraseña</button>
             </div>
@@ -744,17 +744,32 @@ document.addEventListener('DOMContentLoaded', function () {
     await adminGiftAll(amount);
   });
 
-  // Cambiar contraseña
-  document.getElementById('admin-change-pass-btn').addEventListener('click', function () {
+  // Cambiar contraseña (ahora se sincroniza en Firestore, no solo local)
+  document.getElementById('admin-change-pass-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const newPass = document.getElementById('admin-newpass-input').value.trim();
     if (!newPass) { adminShowMsg('Introduce una contraseña', false); return; }
+
+    const passwordHash = await sha256Hex(newPass);
+    if (!passwordHash) { adminShowMsg('No se pudo generar la contraseña', false); return; }
+
     const localUsers = UserStore.load();
-    if (!localUsers[adminSelectedUser]) { adminShowMsg('Usuario no tiene cuenta local en este dispositivo', false); return; }
-    localUsers[adminSelectedUser].password = newPass;
-    UserStore.save(localUsers);
+    if (localUsers[adminSelectedUser]) {
+      localUsers[adminSelectedUser].passwordHash = passwordHash;
+      delete localUsers[adminSelectedUser].password;
+      UserStore.save(localUsers);
+    }
+
+    if (typeof db !== 'undefined' && db) {
+      try {
+        await db.collection('users').doc(adminSelectedUser).set({ passwordHash: passwordHash, updatedAt: Date.now() }, { merge: true });
+      } catch (e) {
+        console.warn('No se pudo subir la nueva contraseña a Firestore:', e);
+      }
+    }
+
     document.getElementById('admin-newpass-input').value = '';
-    adminShowMsg('Contraseña cambiada (local)', true);
+    adminShowMsg('Contraseña cambiada (todos los dispositivos)', true);
   });
 
   // Banear
