@@ -20,6 +20,7 @@
       document.getElementById('ranking-screen').classList.add('hidden');
       document.getElementById('visitor-screen').classList.add('hidden');
       document.getElementById('bottle-detail-screen').classList.add('hidden');
+      document.getElementById('news-screen').classList.add('hidden');
     }
 
     function showApp(username) {
