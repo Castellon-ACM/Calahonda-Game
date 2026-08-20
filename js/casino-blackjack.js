@@ -55,7 +55,7 @@
       else if (outcome === 'push') { payout = bjBet; msg = 'Empate: recuperas tu apuesta'; }
       else { payout = 0; msg = 'Pierdes la mano'; }
       fresh.coins += payout;
-      saveCurrentUserData(fresh);
+      saveAndSync(fresh);
       updateAllBalances(fresh.coins);
       document.getElementById('bj-result').textContent = msg;
       document.getElementById('bj-actions').classList.add('hidden');
@@ -77,7 +77,7 @@
       }
 
       data.coins -= betAmount;
-      saveCurrentUserData(data);
+      saveAndSync(data);
       updateAllBalances(data.coins);
       bjBet = betAmount;
       bjRoundActive = true;
