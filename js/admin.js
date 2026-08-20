@@ -3,7 +3,10 @@
 // =====================================================================
 
 const ADMIN_USER = 'admincaste';
-const ADMIN_PASS = 'papaplaya';
+// La contraseña ya NO está en texto plano: se guarda su hash SHA-256.
+// Sigue siendo la misma contraseña de siempre, solo que ahora no se puede
+// leer directamente mirando el código fuente del repositorio.
+const ADMIN_PASS_HASH = '1a61216fd581cef1c29877f675e7e2839ba0e91afe475b1b8038461f1f146679';
 
 // ── Inyectar HTML del panel en el DOM ────────────────────────────────
 (function injectAdminHTML() {
