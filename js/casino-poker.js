@@ -5,10 +5,11 @@
 // =====================================================================
 const POKER_MAX_SEATS = 6;
 const POKER_BLIND_PRESETS = [
-  { label: '5 / 10', small: 5, big: 10, buyIn: 1000 },
-  { label: '10 / 20', small: 10, big: 20, buyIn: 2000 },
-  { label: '25 / 50', small: 25, big: 50, buyIn: 5000 },
-  { label: '50 / 100', small: 50, big: 100, buyIn: 10000 }
+  { label: 'Sala 10', small: 1, big: 2, buyIn: 10 },
+  { label: 'Sala 100', small: 5, big: 10, buyIn: 100 },
+  { label: 'Sala 500', small: 25, big: 50, buyIn: 500 },
+  { label: 'Sala 1000', small: 50, big: 100, buyIn: 1000 },
+  { label: 'Sala 5000', small: 250, big: 500, buyIn: 5000 }
 ];
 
 let pokerSelectedPreset = 0;
@@ -257,19 +258,20 @@ function pokerTableRef(tableId) {
   return db.collection('poker_tables').doc(tableId);
 }
 
-async function pokerCreateTable(name) {
+async function pokerCreateTable() {
   if (!firebaseReady || !db) return;
   const preset = POKER_BLIND_PRESETS[pokerSelectedPreset];
   const data = getCurrentUserData();
   if (data.coins < preset.buyIn) {
-    pokerLobbyError('No tienes suficientes monedas para el buy-in de esta mesa');
+    pokerLobbyError('No tienes suficientes monedas para el buy-in de esta sala');
     return;
   }
   const seats = new Array(POKER_MAX_SEATS).fill(null);
   seats[0] = pokerNewSeat(currentUser, preset.buyIn);
   const ref = db.collection('poker_tables').doc();
   await ref.set({
-    name: name || ('Mesa de ' + currentUser),
+    name: preset.label + ' · Mesa de ' + currentUser,
+    stakeLabel: preset.label,
     smallBlind: preset.small,
     bigBlind: preset.big,
     buyIn: preset.buyIn,
@@ -511,10 +513,9 @@ function ensurePokerMarkup() {
     '<button type="button" class="back-to-menu-btn" data-back>← Volver</button>' +
     '<div id="poker-lobby-view">' +
       '<div class="poker-create-box">' +
-        '<div class="poker-section-title">Crear mesa</div>' +
-        '<input type="text" id="poker-table-name" placeholder="Nombre de la mesa" class="bet-amount-input">' +
+        '<div class="poker-section-title">Elige tu sala</div>' +
         '<div class="poker-preset-row">' + presetButtons + '</div>' +
-        '<button type="button" class="btn" id="poker-create-btn">Crear mesa</button>' +
+        '<button type="button" class="btn" id="poker-create-btn">Crear mesa en esta sala</button>' +
       '</div>' +
       '<div class="poker-section-title">Mesas abiertas</div>' +
       '<div id="poker-table-list"></div>' +
@@ -553,8 +554,7 @@ function ensurePokerMarkup() {
   });
 
   document.getElementById('poker-create-btn').addEventListener('click', function () {
-    const name = document.getElementById('poker-table-name').value.trim();
-    pokerCreateTable(name);
+    pokerCreateTable();
   });
 
   document.getElementById('poker-leave-btn').addEventListener('click', pokerLeaveTable);
@@ -611,7 +611,7 @@ function pokerListenToLobby() {
       const list = document.getElementById('poker-table-list');
       if (!list) return;
       if (snap.empty) {
-        list.innerHTML = '<div class="inventory-empty">No hay mesas abiertas. ¡Crea una!</div>';
+        list.innerHTML = '<div class="inventory-empty">No hay mesas abiertas. ¡Elige una sala y crea una!</div>';
         return;
       }
       const rows = [];
