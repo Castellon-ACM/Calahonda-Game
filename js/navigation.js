@@ -40,6 +40,9 @@
 
       renderGame();
       startLivePolling();
+
+      // Cargar anuncios desde Firestore y actualizar el badge del buzón
+      if (typeof initAnnouncements === 'function') initAnnouncements();
     }
 
     // Comprueba cada 20s (mientras la app está abierta) si hay regalos del admin,
