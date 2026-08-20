@@ -1,10 +1,10 @@
 // Navegación entre pantallas
     //  Navegación entre pantallas
     // =====================================================================
-    const loginScreen = document.getElementById('login-screen');
+    const loginScreen    = document.getElementById('login-screen');
     const registerScreen = document.getElementById('register-screen');
-    const appScreen = document.getElementById('app-screen');
-    const accountScreen = document.getElementById('account-screen');
+    const appScreen      = document.getElementById('app-screen');
+    const accountScreen  = document.getElementById('account-screen');
 
     let currentUser = null;
 
@@ -30,23 +30,20 @@
       hideAll();
       appScreen.classList.remove('hidden');
 
-      // Volver siempre a la pestaña "Inicio" al entrar
+      // Volver siempre a la pestaña “Inicio” al entrar
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
+      ['tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
+        document.getElementById(id).classList.add('hidden');
+      });
       document.getElementById('tab-home').classList.remove('hidden');
-      document.getElementById('tab-casino').classList.add('hidden');
-      document.getElementById('tab-event').classList.add('hidden');
-      document.getElementById('tab-support').classList.add('hidden');
 
       renderGame();
       startLivePolling();
 
-      // Cargar anuncios desde Firestore y actualizar el badge del buzón
       if (typeof initAnnouncements === 'function') initAnnouncements();
     }
 
-    // Comprueba cada 20s (mientras la app está abierta) si hay regalos del admin,
-    // eventos nuevos o notificaciones pendientes — sin tener que cerrar la app.
     let _livePollTimer = null;
     function startLivePolling() {
       if (_livePollTimer) clearInterval(_livePollTimer);
@@ -59,18 +56,31 @@
       }, 20000);
     }
 
+    // --- Tabbar ---
     document.querySelectorAll('.tabbar-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        const tab = this.getAttribute('data-tab');
+
+        // El ranking no es un tab inline: abre su pantalla
+        if (tab === 'ranking') {
+          hideAll();
+          renderRanking();
+          document.getElementById('ranking-screen').classList.remove('hidden');
+          return;
+        }
+
         document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
         this.classList.add('active');
-        const tab = this.getAttribute('data-tab');
-        document.getElementById('tab-home').classList.toggle('hidden', tab !== 'home');
-        document.getElementById('tab-casino').classList.toggle('hidden', tab !== 'casino');
-        document.getElementById('tab-event').classList.toggle('hidden', tab !== 'event');
-        document.getElementById('tab-support').classList.toggle('hidden', tab !== 'support');
-        if (tab === 'casino') renderCasino();
-        if (tab === 'event') renderEventTab();
+
+        ['tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
+          document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById('tab-' + tab).classList.remove('hidden');
+
+        if (tab === 'casino')  renderCasino();
+        if (tab === 'event')   renderEventTab();
         if (tab === 'support') renderSupportTab();
+        if (tab === 'chat')    renderChatTab();
       });
     });
 

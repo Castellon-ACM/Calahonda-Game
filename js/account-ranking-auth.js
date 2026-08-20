@@ -19,6 +19,8 @@
     async function renderRanking() {
       document.getElementById('avatar-btn-ranking').textContent = initial(currentUser);
       const list = document.getElementById('ranking-list');
+      const searchInput = document.getElementById('ranking-search');
+      if (searchInput) searchInput.value = '';
       list.innerHTML = '<div class="inventory-empty">Cargando ranking...</div>';
 
       const globalRows = await fetchGlobalLeaderboard();
@@ -35,9 +37,25 @@
         }).sort(function (a, b) { return b.value - a.value; });
       }
 
+      window._rankingRows = rows; // guardar para filtrado
+      renderRankingRows(rows);
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function () {
+          const q = searchInput.value.trim().toLowerCase();
+          const filtered = q
+            ? (window._rankingRows || []).filter(function (r) { return r.username.toLowerCase().includes(q); })
+            : (window._rankingRows || []);
+          renderRankingRows(filtered);
+        });
+      }
+    }
+
+    function renderRankingRows(rows) {
+      const list = document.getElementById('ranking-list');
       list.innerHTML = '';
-      if (rows.length === 0) {
-        list.innerHTML = '<div class="inventory-empty">Todavía no hay jugadores</div>';
+      if (!rows || rows.length === 0) {
+        list.innerHTML = '<div class="inventory-empty">No se encontraron jugadores</div>';
         return;
       }
       rows.forEach(function (r, idx) {
@@ -67,11 +85,15 @@
       document.getElementById('avatar-btn-visitor').textContent = initial(username);
       const stealResultEl = document.getElementById('steal-result');
       if (stealResultEl) stealResultEl.textContent = '';
+      // Limpiar posible regalo anterior
+      const prevGift = document.querySelector('#visitor-screen .gift-section');
+      if (prevGift) prevGift.remove();
       renderVisitorInventoryWithSteal(username, data.inventory);
       hideAll();
       document.getElementById('visitor-screen').classList.remove('hidden');
     }
 
+    // El botón "Ver ranking" de la pantalla de cuenta sigue funcionando
     document.getElementById('view-ranking-btn').addEventListener('click', function () {
       hideAll();
       renderRanking();
@@ -80,7 +102,11 @@
 
     document.getElementById('ranking-back').addEventListener('click', function () {
       hideAll();
-      accountScreen.classList.remove('hidden');
+      appScreen.classList.remove('hidden');
+      // Restaurar tab activo
+      document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.getElementById('tabbtn-home').classList.add('active');
+      document.getElementById('tab-home').classList.remove('hidden');
     });
 
     document.getElementById('visitor-back').addEventListener('click', function () {
@@ -98,6 +124,7 @@
 
     document.getElementById('account-logout').addEventListener('click', function () {
       currentUser = null;
+      stopChat();
       document.getElementById('login-user').value = '';
       document.getElementById('login-pass').value = '';
       hideAll();
@@ -105,10 +132,10 @@
     });
 
     document.getElementById('account-save').addEventListener('click', function () {
-      const newUser = document.getElementById('account-user').value.trim();
-      const newEmail = document.getElementById('account-email').value.trim();
-      const newPass = document.getElementById('account-pass').value.trim();
-      const errorMsg = document.getElementById('account-error');
+      const newUser    = document.getElementById('account-user').value.trim();
+      const newEmail   = document.getElementById('account-email').value.trim();
+      const newPass    = document.getElementById('account-pass').value.trim();
+      const errorMsg   = document.getElementById('account-error');
       const successMsg = document.getElementById('account-success');
 
       successMsg.style.display = 'none';
@@ -141,7 +168,7 @@
       UserStore.save(users);
 
       currentUser = newUser;
-      pushUserData(newUser, updated); // sincronizar cambio de nombre/email con Firestore
+      pushUserData(newUser, updated);
       document.getElementById('avatar-btn').textContent = initial(newUser);
       document.getElementById('avatar-btn-account').textContent = initial(newUser);
       document.getElementById('account-pass').value = '';
@@ -164,8 +191,8 @@
 
     document.getElementById('login-form').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const user = document.getElementById('login-user').value.trim();
-      const pass = document.getElementById('login-pass').value.trim();
+      const user     = document.getElementById('login-user').value.trim();
+      const pass     = document.getElementById('login-pass').value.trim();
       const errorMsg = document.getElementById('login-error');
 
       if (!user || !pass) {
@@ -174,7 +201,6 @@
         return;
       }
 
-      // Acceso admin directo desde el login normal
       if (user === ADMIN_USER && pass === ADMIN_PASS) {
         errorMsg.style.display = 'none';
         hideAll();
@@ -196,19 +222,15 @@
       }
 
       errorMsg.style.display = 'none';
-
-      // Sincronizar datos desde Firestore antes de entrar
-      // (aplica monedas/inventario que el admin haya podido modificar)
       await pullUserData(user);
-
       showApp(user);
     });
 
     document.getElementById('register-form').addEventListener('submit', function (e) {
       e.preventDefault();
-      const user = document.getElementById('reg-user').value.trim();
-      const email = document.getElementById('reg-email').value.trim();
-      const pass = document.getElementById('reg-pass').value.trim();
+      const user     = document.getElementById('reg-user').value.trim();
+      const email    = document.getElementById('reg-email').value.trim();
+      const pass     = document.getElementById('reg-pass').value.trim();
       const errorMsg = document.getElementById('register-error');
 
       if (!user || !email || !pass) {
@@ -227,8 +249,6 @@
       const newUserData = { email: email, password: pass, coins: 100, inventory: {}, updatedAt: Date.now() };
       users[user] = newUserData;
       UserStore.save(users);
-
-      // Subir el nuevo usuario a Firestore para que el admin lo vea desde el primer momento
       pushUserData(user, newUserData);
 
       errorMsg.style.display = 'none';

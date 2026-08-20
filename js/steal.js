@@ -8,11 +8,13 @@ function stealCostFor(rarity) {
   return STEAL_COSTS[rarity] || STEAL_COSTS.common;
 }
 
-// Renderiza el inventario de otro jugador con un botón de "Robar" en cada botella.
-// Si el perfil visitado es el tuyo propio, se muestra sin botones (no puedes robarte a ti mismo).
+// Renderiza el inventario de otro jugador con botones de Robar y Regalo.
+// Si el perfil visitado es el tuyo propio, se muestra sin botones.
 function renderVisitorInventoryWithSteal(targetUsername, inventory) {
   if (targetUsername === currentUser) {
     renderInventory(inventory, 'visitor-inventory-grid');
+    // Inyectar sección de regalo si aplica
+    injectGiftSection(targetUsername);
     return;
   }
 
@@ -20,36 +22,47 @@ function renderVisitorInventoryWithSteal(targetUsername, inventory) {
   const names = Object.keys(inventory || {});
   if (names.length === 0) {
     grid.innerHTML = '<div class="inventory-empty">Esta persona aún no tiene botellas</div>';
-    return;
+  } else {
+    names.sort(function (a, b) {
+      const ra = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === a; }) || {}).rarity || 'common'];
+      const rb = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === b; }) || {}).rarity || 'common'];
+      if (ra !== rb) return ra - rb;
+      return a.localeCompare(b);
+    });
+
+    grid.innerHTML = '';
+    names.forEach(function (name) {
+      const rarity = (REWARDS.find(function (r) { return r.name === name; }) || {}).rarity || 'common';
+      const count = inventory[name];
+      const prog = levelProgress(count);
+      const cost = stealCostFor(rarity);
+      const el = document.createElement('div');
+      el.className = 'inventory-item rarity-' + rarity;
+      el.innerHTML =
+        '<div class="bottle-icon">' + bottleIconMarkup(name) + '</div>' +
+        '<div class="bottle-level">Nivel ' + prog.level + '</div>' +
+        '<div class="bottle-name">' + name + '</div>' +
+        '<div class="bottle-progress-label">' + count + ' unidades</div>' +
+        '<button type="button" class="btn steal-btn" data-name="' + name + '" data-cost="' + cost + '">🏴‍☠️ Robar (' + cost + '🪙)</button>';
+      el.querySelector('.steal-btn').addEventListener('click', function (e) {
+        e.stopPropagation();
+        attemptSteal(targetUsername, name, cost);
+      });
+      grid.appendChild(el);
+    });
   }
 
-  names.sort(function (a, b) {
-    const ra = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === a; }) || {}).rarity || 'common'];
-    const rb = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === b; }) || {}).rarity || 'common'];
-    if (ra !== rb) return ra - rb;
-    return a.localeCompare(b);
-  });
+  // Inyectar sección de regalo debajo del inventario
+  injectGiftSection(targetUsername);
+}
 
-  grid.innerHTML = '';
-  names.forEach(function (name) {
-    const rarity = (REWARDS.find(function (r) { return r.name === name; }) || {}).rarity || 'common';
-    const count = inventory[name];
-    const prog = levelProgress(count);
-    const cost = stealCostFor(rarity);
-    const el = document.createElement('div');
-    el.className = 'inventory-item rarity-' + rarity;
-    el.innerHTML =
-      '<div class="bottle-icon">' + bottleIconMarkup(name) + '</div>' +
-      '<div class="bottle-level">Nivel ' + prog.level + '</div>' +
-      '<div class="bottle-name">' + name + '</div>' +
-      '<div class="bottle-progress-label">' + count + ' unidades</div>' +
-      '<button type="button" class="btn steal-btn" data-name="' + name + '" data-cost="' + cost + '">🏴‍☠️ Robar (' + cost + '🪙)</button>';
-    el.querySelector('.steal-btn').addEventListener('click', function (e) {
-      e.stopPropagation();
-      attemptSteal(targetUsername, name, cost);
-    });
-    grid.appendChild(el);
-  });
+function injectGiftSection(targetUsername) {
+  const card = document.querySelector('#visitor-screen .card');
+  if (!card || targetUsername === currentUser) return;
+  // Evitar duplicados
+  if (card.querySelector('.gift-section')) return;
+  card.insertAdjacentHTML('beforeend', renderGiftSection(targetUsername));
+  attachGiftListeners(targetUsername);
 }
 
 function ensureStealResultEl() {
@@ -84,7 +97,6 @@ async function attemptSteal(targetUsername, bottleName, cost) {
   resultEl.textContent = 'Intentando robar...';
   resultEl.style.color = '#f4d98a';
 
-  // El coste se paga siempre, haya éxito o no.
   data.coins -= cost;
   saveAndSync(data);
   updateAllBalances(data.coins);
@@ -98,7 +110,6 @@ async function attemptSteal(targetUsername, bottleName, cost) {
   }
 
   try {
-    // Leer el inventario más reciente del objetivo desde Firestore
     const targetRef = db.collection('users').doc(targetUsername);
     const targetDoc = await targetRef.get();
     if (!targetDoc.exists) {
@@ -115,7 +126,6 @@ async function attemptSteal(targetUsername, bottleName, cost) {
       return;
     }
 
-    // Quitarle 1 unidad (el nivel se recalcula solo, al depender del recuento)
     if (targetCount - 1 <= 0) {
       delete targetInventory[bottleName];
     } else {
@@ -129,7 +139,6 @@ async function attemptSteal(targetUsername, bottleName, cost) {
       updatedAt: Date.now()
     }, { merge: true });
 
-    // Añadírsela al ladrón
     const fresh = getCurrentUserData();
     fresh.inventory[bottleName] = (fresh.inventory[bottleName] || 0) + 1;
     saveAndSync(fresh);
@@ -139,10 +148,7 @@ async function attemptSteal(targetUsername, bottleName, cost) {
     resultEl.textContent = '🎉 ¡Le has robado ' + bottleName + '!';
     resultEl.style.color = '#8fd17c';
 
-    // Avisar a la víctima la próxima vez que entre
     queueUserNotification(targetUsername, 'Te han robado una botella: ' + bottleName + ' 🏴‍☠️');
-
-    // Refrescar el perfil visitado con los datos ya actualizados
     renderVisitorInventoryWithSteal(targetUsername, targetInventory);
   } catch (e) {
     console.warn('Error al robar:', e);
