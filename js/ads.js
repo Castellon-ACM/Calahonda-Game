@@ -23,12 +23,25 @@ const AD_REWARD_COOLDOWN_MS = 1 * 60 * 1000; // 1 minuto
 
 let _adOverlayTimer = null;
 
+// Cargamos el script del anuncio DENTRO de un iframe aislado ("sandbox").
+// El sandbox le permite ejecutar su JS y abrir su ventana/pestaña nueva
+// (allow-scripts, allow-popups), pero técnicamente le PROHÍBE redirigir o
+// tocar la página principal del juego (no incluimos allow-top-navigation).
+// Esto es una práctica estándar y legítima para blindar la web frente a
+// anuncios que, cuando el navegador bloquea la ventana nueva, intentan
+// redirigir la pestaña actual como alternativa. No afecta ni interfiere
+// con el anuncio en sí (la impresión cuenta igual), solo contiene dónde
+// puede actuar el script.
 function loadPopunderAd() {
   try {
-    const script = document.createElement('script');
-    script.src = 'https://pl30937576.effectivecpmnetwork.com/66/af/1e/66af1e28663304edf3869ffa80dc448b.js';
-    script.async = true;
-    document.body.appendChild(script);
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none;';
+    iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin');
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write('<script src="https://pl30937576.effectivecpmnetwork.com/66/af/1e/66af1e28663304edf3869ffa80dc448b.js"><\/script>');
+    doc.close();
   } catch (e) {
     console.warn('No se pudo cargar el anuncio:', e);
   }
