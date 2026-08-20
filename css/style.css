@@ -1088,8 +1088,6 @@
   .poker-raise-btn { width: auto; padding: 12px 16px; margin-top: 0; flex-shrink: 0; background: linear-gradient(135deg, #a24ff0, #4a1a70); color: #fff; }
 
   /* ---------- Novedades ---------- */
-
-  /* Icono correo: mismo tamaño que el avatar (38×38), separado 12px */
   .news-btn {
     background: none;
     border: none;
@@ -1120,8 +1118,6 @@
     line-height: 1.4;
     pointer-events: none;
   }
-
-  /* Pantalla novedades: fondo oscuro, sin card blanca */
   #news-screen .screen-body {
     background: linear-gradient(180deg, #17110a 0%, #0d0a05 100%);
     justify-content: flex-start;
@@ -1140,7 +1136,6 @@
     text-align: left;
     margin-bottom: 16px;
   }
-
   .news-card {
     background: #1a1505;
     border: 1px solid #3a2c14;
@@ -1152,3 +1147,113 @@
   .news-card-title { color: #f4d98a; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
   .news-card-body { color: #ccc; font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
   .news-cta-btn { margin-top: 0; }
+
+  /* ---------- Gift (regalo de monedas) ---------- */
+  .gift-section {
+    margin-top: 20px;
+    border-top: 1px solid #3a2c14;
+    padding-top: 16px;
+  }
+  .gift-btn-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .gift-amount-btn {
+    padding: 10px 4px;
+    font-size: 12px;
+    margin-top: 0;
+    background: linear-gradient(135deg, #8fd17c, #2f7d3f);
+    color: #0d1a0f;
+  }
+
+  /* ---------- Chat global ---------- */
+  #tab-chat .game {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 0;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0 10px;
+    min-height: 0;
+  }
+  .chat-bubble-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .chat-bubble-wrap.chat-bubble-mine {
+    flex-direction: row-reverse;
+  }
+  .chat-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f4d98a, #d4a017);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #241a05;
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .chat-bubble {
+    background: #1a1505;
+    border: 1px solid #3a2c14;
+    border-radius: 14px;
+    padding: 8px 12px;
+    max-width: 75%;
+  }
+  .chat-bubble-wrap.chat-bubble-mine .chat-bubble {
+    background: #2a1e08;
+    border-color: #8a6512;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-bubble-wrap:not(.chat-bubble-mine) .chat-bubble {
+    border-bottom-left-radius: 4px;
+  }
+  .chat-bubble-name {
+    font-size: 10px;
+    color: #f4d98a;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .chat-bubble-wrap.chat-bubble-mine .chat-bubble-name { text-align: right; }
+  .chat-bubble-text {
+    font-size: 13px;
+    color: #fff;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .chat-bubble-time {
+    font-size: 10px;
+    color: #6b5f45;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #3a2c14;
+    flex-shrink: 0;
+  }
+  .chat-input-row .bet-amount-input {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .chat-send-btn {
+    width: auto;
+    padding: 12px 16px;
+    margin-top: 0;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
