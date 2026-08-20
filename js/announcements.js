@@ -1,10 +1,17 @@
 // =====================================================================
 //  NOVEDADES: buzón de anuncios de la app (icono de correo junto al avatar)
-//  Cada vez que se lanza algo nuevo, se añade una entrada aquí con un id
-//  correlativo. El id más alto que el jugador ha visto se guarda en su
-//  perfil (lastSeenAnnouncement), así que el contador solo cuenta lo nuevo.
+//
+//  Los anuncios se cargan dinámicamente desde Firestore (colección
+//  "announcements"). Si no hay conexión se usa el array ANNOUNCEMENTS_FALLBACK
+//  como respaldo. El admin puede crear/borrar anuncios desde el panel.
+//
+//  Cada anuncio tiene: { id, date, title, body, cta?, ctaTab? }
+//  El id más alto visto por el jugador se guarda en lastSeenAnnouncement,
+//  así el contador solo cuenta los nuevos.
 // =====================================================================
-const ANNOUNCEMENTS = [
+
+// Fallback estático (se usa solo si Firestore no responde)
+const ANNOUNCEMENTS_FALLBACK = [
   {
     id: 1,
     date: '19 ago',
@@ -23,6 +30,29 @@ const ANNOUNCEMENTS = [
   }
 ];
 
+// Array activo (se rellena al cargar desde Firestore)
+let ANNOUNCEMENTS = ANNOUNCEMENTS_FALLBACK.slice();
+
+// ── Carga desde Firestore ─────────────────────────────────────────────
+async function loadAnnouncementsFromFirestore() {
+  if (typeof db === 'undefined' || !db) return;
+  try {
+    const snap = await db.collection('announcements').orderBy('id', 'asc').get();
+    if (snap.empty) return;
+    ANNOUNCEMENTS = snap.docs.map(function (doc) { return doc.data(); });
+  } catch (e) {
+    console.warn('[Announcements] No se pudo cargar desde Firestore, usando fallback:', e);
+  }
+}
+
+// Llama a esta función justo después de que el usuario haga login
+// (ya se hace desde account-ranking-auth.js con onLoginSuccess)
+async function initAnnouncements() {
+  await loadAnnouncementsFromFirestore();
+  updateNewsBadge();
+}
+
+// ── Utilidades ────────────────────────────────────────────────────────
 function latestAnnouncementId() {
   return ANNOUNCEMENTS.reduce(function (max, a) { return a.id > max ? a.id : max; }, 0);
 }
@@ -84,7 +114,7 @@ function openNewsScreen() {
   // Marcar todo como visto al abrir el buzón
   const data = getCurrentUserData();
   const latest = latestAnnouncementId();
-  if (data.lastSeenAnnouncement < latest) {
+  if ((data.lastSeenAnnouncement || 0) < latest) {
     data.lastSeenAnnouncement = latest;
     saveAndSync(data);
   }
