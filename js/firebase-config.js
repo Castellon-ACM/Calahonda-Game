@@ -23,6 +23,19 @@ try {
   console.warn('Firebase no se pudo inicializar:', e);
 }
 
+// Convierte un texto (la contraseña) en un hash SHA-256 en hexadecimal.
+// Así la contraseña real nunca viaja ni se guarda en Firestore, solo su huella.
+async function sha256Hex(text) {
+  try {
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  } catch (e) {
+    console.warn('No se pudo calcular el hash de la contraseña:', e);
+    return null;
+  }
+}
+
 // Sube el inventario público al ranking (sin datos privados como contraseña).
 async function pushToLeaderboard(username, inventory) {
   if (!firebaseReady || !db || !username) return;
@@ -40,12 +53,13 @@ async function pushToLeaderboard(username, inventory) {
 }
 
 // Sube los datos completos del jugador a la colección 'users' de Firestore.
-// Esto permite al admin ver y gestionar todos los jugadores desde cualquier dispositivo.
-// NO sube la contraseña.
+// Esto permite al admin ver y gestionar todos los jugadores desde cualquier dispositivo,
+// y permite iniciar sesión con el mismo usuario desde otro móvil o el PC.
+// Solo se sube el HASH de la contraseña (nunca la contraseña en texto plano).
 async function pushUserData(username, data) {
   if (!firebaseReady || !db || !username || !data) return;
   try {
-    await db.collection('users').doc(username).set({
+    const payload = {
       username: username,
       coins: data.coins || 0,
       inventory: data.inventory || {},
@@ -53,7 +67,10 @@ async function pushUserData(username, data) {
       banned: data.banned || false,
       value: computeCollectionValue(data.inventory || {}),
       updatedAt: Date.now()
-    }, { merge: true });
+    };
+    if (data.passwordHash) payload.passwordHash = data.passwordHash;
+    if (data.ownedSkins) payload.ownedSkins = data.ownedSkins;
+    await db.collection('users').doc(username).set(payload, { merge: true });
   } catch (e) {
     console.warn('No se pudo sincronizar datos de usuario:', e);
   }
@@ -67,6 +84,20 @@ async function fetchGlobalLeaderboard() {
     return snap.docs.map(function (d) { return d.data(); });
   } catch (e) {
     console.warn('No se pudo cargar el ranking global:', e);
+    return null;
+  }
+}
+
+// Descarga los datos completos de UN usuario desde Firestore por su nombre de usuario.
+// Se usa para poder iniciar sesión desde un dispositivo donde ese usuario nunca se registró.
+async function fetchRemoteUser(username) {
+  if (!firebaseReady || !db || !username) return null;
+  try {
+    const doc = await db.collection('users').doc(username).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  } catch (e) {
+    console.warn('No se pudo consultar el usuario remoto:', e);
     return null;
   }
 }
@@ -86,6 +117,14 @@ async function pullUserData(username) {
     // ni dependen de qué dispositivo tenga los datos más recientes).
     if (remote.ownedSkins) {
       users[username].ownedSkins = Object.assign({}, users[username].ownedSkins || {}, remote.ownedSkins);
+      UserStore.save(users);
+    }
+
+    // El hash de contraseña siempre se sincroniza si el servidor tiene uno más nuevo
+    // (por ejemplo, si se cambió desde otro dispositivo).
+    if (remote.passwordHash && remote.passwordHash !== users[username].passwordHash) {
+      users[username].passwordHash = remote.passwordHash;
+      delete users[username].password; // ya no hace falta la versión en texto plano
       UserStore.save(users);
     }
 

@@ -131,7 +131,7 @@
       loginScreen.classList.remove('hidden');
     });
 
-    document.getElementById('account-save').addEventListener('click', function () {
+    document.getElementById('account-save').addEventListener('click', async function () {
       const newUser    = document.getElementById('account-user').value.trim();
       const newEmail   = document.getElementById('account-email').value.trim();
       const newPass    = document.getElementById('account-pass').value.trim();
@@ -153,12 +153,15 @@
         return;
       }
 
-      const existing = users[currentUser] || { password: '' };
+      const existing = users[currentUser] || {};
+      const newPasswordHash = newPass ? await sha256Hex(newPass) : existing.passwordHash;
+
       const updated = {
         email: newEmail,
-        password: newPass ? newPass : existing.password,
+        passwordHash: newPasswordHash,
         coins: existing.coins || 0,
         inventory: existing.inventory || {},
+        ownedSkins: existing.ownedSkins || {},
         lastClaim: existing.lastClaim || null,
         updatedAt: Date.now()
       };
@@ -209,24 +212,70 @@
         return;
       }
 
+      const passwordHash = await sha256Hex(pass);
       const users = UserStore.load();
-      if (!users[user]) {
-        errorMsg.textContent = 'Ese usuario no está registrado';
-        errorMsg.style.display = 'block';
-        return;
+      let localUser = users[user];
+
+      // Si este dispositivo no conoce al usuario (o su cuenta local es de antes de
+      // esta actualización y no tiene passwordHash), preguntamos al servidor.
+      if (!localUser || !localUser.passwordHash) {
+        const remote = await fetchRemoteUser(user);
+
+        if (remote && remote.passwordHash) {
+          if (remote.passwordHash !== passwordHash) {
+            errorMsg.textContent = 'Contraseña incorrecta';
+            errorMsg.style.display = 'block';
+            return;
+          }
+          // Traemos la cuenta completa desde el servidor a este dispositivo.
+          localUser = {
+            email: remote.email || (localUser && localUser.email) || '',
+            passwordHash: remote.passwordHash,
+            coins: remote.coins || 0,
+            inventory: remote.inventory || {},
+            ownedSkins: remote.ownedSkins || {},
+            banned: remote.banned || false,
+            updatedAt: remote.updatedAt || Date.now()
+          };
+          users[user] = localUser;
+          UserStore.save(users);
+        } else if (!localUser) {
+          errorMsg.textContent = 'Ese usuario no está registrado';
+          errorMsg.style.display = 'block';
+          return;
+        }
+        // Si localUser existe pero aún no tiene passwordHash (cuenta antigua en ESTE
+        // mismo dispositivo, ver comprobación de compatibilidad más abajo).
       }
-      if (users[user].password !== pass) {
+
+      // Compatibilidad con cuentas antiguas que aún guardan la contraseña en texto plano
+      const validPassword = localUser.passwordHash
+        ? localUser.passwordHash === passwordHash
+        : localUser.password === pass;
+
+      if (!validPassword) {
         errorMsg.textContent = 'Contraseña incorrecta';
         errorMsg.style.display = 'block';
         return;
       }
+
+      // Migración: si la cuenta aún no tenía hash (contraseña antigua en texto plano),
+      // lo generamos ahora y lo subimos al servidor para que ya se pueda entrar
+      // desde cualquier otro dispositivo a partir de este momento.
+      if (!localUser.passwordHash) {
+        localUser.passwordHash = passwordHash;
+        delete localUser.password;
+        users[user] = localUser;
+        UserStore.save(users);
+      }
+      pushUserData(user, localUser);
 
       errorMsg.style.display = 'none';
       await pullUserData(user);
       showApp(user);
     });
 
-    document.getElementById('register-form').addEventListener('submit', function (e) {
+    document.getElementById('register-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       const user     = document.getElementById('reg-user').value.trim();
       const email    = document.getElementById('reg-email').value.trim();
@@ -246,7 +295,17 @@
         return;
       }
 
-      const newUserData = { email: email, password: pass, coins: 100, inventory: {}, updatedAt: Date.now() };
+      // Comprobar también en el servidor, por si ese usuario ya existe
+      // registrado desde otro dispositivo.
+      const remoteExisting = await fetchRemoteUser(user);
+      if (remoteExisting) {
+        errorMsg.textContent = 'Ese usuario ya existe, inicia sesión';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const passwordHash = await sha256Hex(pass);
+      const newUserData = { email: email, passwordHash: passwordHash, coins: 100, inventory: {}, updatedAt: Date.now() };
       users[user] = newUserData;
       UserStore.save(users);
       pushUserData(user, newUserData);
