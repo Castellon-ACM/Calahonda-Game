@@ -747,7 +747,8 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
   });
 
-  // Dar monedas (ahora lee/escribe el saldo REAL en Firestore, con confirmación real)
+  // Dar monedas (ahora lee/escribe el saldo REAL en Firestore, con confirmación real,
+  // y refresca al momento la lista de abajo con el nuevo saldo)
   document.getElementById('admin-give-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -763,9 +764,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + result.coins.toLocaleString();
     adminShowMsg('✅ +' + amount + ' monedas añadidas (confirmado en Firestore)', true);
     adminRenderGlobalStats();
+    adminRenderUserList(document.getElementById('admin-search').value.trim());
   });
 
-  // Quitar monedas (mismo mecanismo fiable)
+  // Quitar monedas (mismo mecanismo fiable + refresco automático de la lista)
   document.getElementById('admin-take-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -781,6 +783,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('admin-modal-coins').textContent = '🪙 Monedas: ' + result.coins.toLocaleString();
     adminShowMsg('✅ -' + amount + ' monedas quitadas (confirmado en Firestore)', true);
     adminRenderGlobalStats();
+    adminRenderUserList(document.getElementById('admin-search').value.trim());
   });
 
   // Dar a todos
