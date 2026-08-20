@@ -52,12 +52,32 @@ async function pushToLeaderboard(username, inventory) {
   }
 }
 
+// =====================================================================
+//  REINTENTO AUTOMÁTICO: si guardar en Firestore falla (mala conexión,
+//  típico en fiestas con mucha gente en el mismo wifi), NO se pierde el
+//  cambio. Se marca como "pendiente" en el propio localStorage del jugador
+//  y se reintenta solo en segundo plano cada 15s hasta que se confirme.
+// =====================================================================
+function _markPendingSync(username, pending) {
+  try {
+    const users = UserStore.load();
+    if (!users[username]) return;
+    if (pending) {
+      users[username].pendingSync = true;
+    } else {
+      delete users[username].pendingSync;
+    }
+    UserStore.save(users);
+  } catch (e) {}
+}
+
 // Sube los datos completos del jugador a la colección 'users' de Firestore.
 // Esto permite al admin ver y gestionar todos los jugadores desde cualquier dispositivo,
 // y permite iniciar sesión con el mismo usuario desde otro móvil o el PC.
 // Solo se sube el HASH de la contraseña (nunca la contraseña en texto plano).
+// Devuelve true/false según si se guardó de verdad en Firestore.
 async function pushUserData(username, data) {
-  if (!firebaseReady || !db || !username || !data) return;
+  if (!firebaseReady || !db || !username || !data) return false;
   try {
     const payload = {
       username: username,
@@ -71,10 +91,30 @@ async function pushUserData(username, data) {
     if (data.passwordHash) payload.passwordHash = data.passwordHash;
     if (data.ownedSkins) payload.ownedSkins = data.ownedSkins;
     await db.collection('users').doc(username).set(payload, { merge: true });
+    _markPendingSync(username, false);
+    return true;
   } catch (e) {
-    console.warn('No se pudo sincronizar datos de usuario:', e);
+    console.warn('No se pudo sincronizar datos de usuario (se reintentará solo):', e);
+    _markPendingSync(username, true);
+    return false;
   }
 }
+
+// Reintenta subir los datos de cualquier usuario local que se haya quedado
+// marcado como "pendiente" por un fallo de conexión anterior.
+async function flushPendingSync() {
+  if (!firebaseReady || !db) return;
+  try {
+    const users = UserStore.load();
+    const pendingUsernames = Object.keys(users).filter(function (u) { return users[u] && users[u].pendingSync; });
+    for (const u of pendingUsernames) {
+      await pushUserData(u, users[u]);
+    }
+  } catch (e) {}
+}
+
+// Reintento en segundo plano cada 15s, sin depender de que el jugador haga nada.
+setInterval(flushPendingSync, 15000);
 
 // Descarga el ranking global completo.
 async function fetchGlobalLeaderboard() {
@@ -105,14 +145,13 @@ async function fetchRemoteUser(username) {
 // Carga los datos de un usuario desde Firestore y los aplica al localStorage.
 // Se llama al hacer login para sincronizar monedas/inventario que el admin haya modificado.
 //
-// IMPORTANTE — por qué NO comparamos updatedAt para las monedas:
-// El admin usa una transacción atómica en Firestore para ajustar coins. Esa transacción
-// actualiza updatedAt en Firestore. Pero si el jugador estuvo activo después de que el
-// admin hiciera el cambio, su localStorage tendrá un updatedAt más reciente, con lo que
-// la comparación "remoteUpdated > localUpdated" fallaría y se ignorarían las monedas dadas.
-// Solución: coins SIEMPRE se toma de Firestore (es la fuente de verdad para monedas).
-// El resto (inventory, email, banned) sigue usando la comparación de fecha para no pisar
-// cambios legítimos que el jugador haya hecho en este dispositivo.
+// IMPORTANTE — cómo se decide qué saldo de monedas gana:
+// El admin usa una transacción atómica en Firestore para ajustar coins, así que en
+// general Firestore es la fuente de verdad. PERO si este dispositivo tiene un cambio
+// de monedas que TODAVÍA no se ha confirmado guardado en Firestore (pendingSync=true,
+// por ejemplo porque el jugador ganó monedas con mala conexión y el guardado falló),
+// NO pisamos ese valor local con el de Firestore, que estaría desactualizado. En su
+// lugar, dejamos que el reintento automático (flushPendingSync) termine de subirlo.
 async function pullUserData(username) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -121,6 +160,8 @@ async function pullUserData(username) {
     const remote = doc.data();
     const users = UserStore.load();
     if (!users[username]) return;
+
+    const hasPendingLocalChange = !!users[username].pendingSync;
 
     // ── Skins: siempre fusionar (merge) ──────────────────────────────
     if (remote.ownedSkins) {
@@ -133,18 +174,17 @@ async function pullUserData(username) {
       delete users[username].password;
     }
 
-    // ── Monedas: SIEMPRE tomar el valor de Firestore ──────────────────
-    // Firestore es la fuente de verdad para coins. El admin escribe ahí de
-    // forma atómica; si el jugador tiene un updatedAt más nuevo en local no
-    // significa que sus monedas sean las correctas, solo que jugó más tarde.
-    if (remote.coins !== undefined) {
+    // ── Monedas: tomar el valor de Firestore, SALVO que este dispositivo
+    // tenga un cambio local todavía sin confirmar guardar (evita perder
+    // monedas ganadas offline por culpa de mala conexión) ──────────────
+    if (remote.coins !== undefined && !hasPendingLocalChange) {
       users[username].coins = remote.coins;
     }
 
     // ── Resto (inventory, email, banned): comparar fechas ─────────────
     const localUpdated = users[username].updatedAt || 0;
     const remoteUpdated = remote.updatedAt || 0;
-    if (remoteUpdated > localUpdated) {
+    if (remoteUpdated > localUpdated && !hasPendingLocalChange) {
       if (remote.inventory) users[username].inventory = remote.inventory;
       if (remote.email) users[username].email = remote.email;
       if (remote.banned !== undefined) users[username].banned = remote.banned;
@@ -152,6 +192,12 @@ async function pullUserData(username) {
     }
 
     UserStore.save(users);
+
+    // Si había un cambio pendiente, intentar subirlo ahora mismo (además
+    // del reintento automático cada 15s) para ponerlo al día cuanto antes.
+    if (hasPendingLocalChange) {
+      pushUserData(username, users[username]);
+    }
   } catch (e) {
     console.warn('No se pudo cargar datos remotos del usuario:', e);
   }
@@ -163,13 +209,15 @@ async function pullUserData(username) {
 async function syncCoinsFromFirestore(username) {
   if (!firebaseReady || !db || !username) return;
   try {
+    const users = UserStore.load();
+    if (!users[username]) return;
+    if (users[username].pendingSync) return; // no pisar un cambio local aún sin confirmar
+
     const doc = await db.collection('users').doc(username).get();
     if (!doc.exists) return;
     const remoteCoins = doc.data().coins;
     if (remoteCoins === undefined) return;
 
-    const users = UserStore.load();
-    if (!users[username]) return;
     if (users[username].coins === remoteCoins) return; // nada que actualizar
 
     users[username].coins = remoteCoins;
