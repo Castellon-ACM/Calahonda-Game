@@ -1260,3 +1260,11 @@
     flex-shrink: 0;
     font-size: 18px;
   }
+
+  /* ---------- Animación de moneda al aire (robar botella) ---------- */
+  @keyframes steal-coin-flip {
+    0%, 100% { transform: scaleX(1); }
+    25% { transform: scaleX(0.15); }
+    50% { transform: scaleX(1); }
+    75% { transform: scaleX(0.15); }
+  }
