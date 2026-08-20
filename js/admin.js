@@ -17,9 +17,10 @@ const ADMIN_PASS = 'papaplaya';
     </div>
 
     <!-- Pestañas del admin -->
-    <div style="display:flex;background:#161116;border-bottom:1px solid #3a2c14">
-      <button type="button" class="admin-tab-btn active" id="admin-tabbtn-users" style="flex:1;background:none;border:none;color:#f5c518;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid #f5c518">👥 Usuarios</button>
-      <button type="button" class="admin-tab-btn" id="admin-tabbtn-events" style="flex:1;background:none;border:none;color:#8a7c5a;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent">🎉 Eventos y avisos</button>
+    <div style="display:flex;background:#161116;border-bottom:1px solid #3a2c14;overflow-x:auto">
+      <button type="button" class="admin-tab-btn active" id="admin-tabbtn-users" style="flex:1;min-width:80px;background:none;border:none;color:#f5c518;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid #f5c518;white-space:nowrap">👥 Usuarios</button>
+      <button type="button" class="admin-tab-btn" id="admin-tabbtn-events" style="flex:1;min-width:80px;background:none;border:none;color:#8a7c5a;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap">🎉 Eventos</button>
+      <button type="button" class="admin-tab-btn" id="admin-tabbtn-announcements" style="flex:1;min-width:80px;background:none;border:none;color:#8a7c5a;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap">📢 Anuncios</button>
     </div>
 
     <div class="screen-body">
@@ -29,7 +30,7 @@ const ADMIN_PASS = 'papaplaya';
         <div id="admin-tab-users">
           <h1>Usuarios</h1>
 
-          <!-- Buscador: input 100% + botón debajo 100% -->
+          <!-- Buscador -->
           <div class="field" style="margin-bottom:12px">
             <label style="display:block;margin-bottom:4px">Buscar usuario</label>
             <input type="text" id="admin-search" placeholder="nombre de usuario" style="width:100%;box-sizing:border-box;margin-bottom:6px">
@@ -103,6 +104,43 @@ const ADMIN_PASS = 'papaplaya';
           <!-- Aquí se inyectan dinámicamente: evento 3 cartas, evento cronómetro, apoyo/donaciones -->
         </div>
 
+        <!-- ============ PESTAÑA: ANUNCIOS ============ -->
+        <div id="admin-tab-announcements" class="hidden">
+          <h1>Anuncios</h1>
+          <div style="color:#aaa;font-size:12px;margin-bottom:16px">
+            Los anuncios aparecen en el buzón ✉️ de todos los jugadores. Se guardan en Firestore y son visibles en tiempo real.
+          </div>
+
+          <!-- Formulario nuevo anuncio -->
+          <div style="background:#1a1505;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #f5c51833">
+            <div style="color:#f5c518;font-weight:700;margin-bottom:12px">➕ Nuevo anuncio</div>
+
+            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Título *</div>
+            <input type="text" id="ann-title" placeholder="ej: Nuevo juego: Póker" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:10px">
+
+            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Descripción *</div>
+            <textarea id="ann-body" placeholder="Describe la novedad con detalle..." rows="3" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:10px;resize:vertical;font-family:inherit"></textarea>
+
+            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Texto del botón CTA <span style="color:#555">(opcional)</span></div>
+            <input type="text" id="ann-cta" placeholder="ej: Entrar al casino" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:10px">
+
+            <div style="color:#aaa;font-size:12px;margin-bottom:4px">Pestaña del CTA</div>
+            <select id="ann-ctatab" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:14px;appearance:auto">
+              <option value="home">🏠 Inicio</option>
+              <option value="casino">🎰 Casino</option>
+              <option value="event">🃏 Evento</option>
+              <option value="support">☕ Apoyo</option>
+            </select>
+
+            <button type="button" class="btn" id="ann-publish-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px">📢 Publicar anuncio</button>
+            <div id="ann-publish-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
+          </div>
+
+          <!-- Lista de anuncios existentes -->
+          <div style="color:#f5c518;font-weight:700;margin-bottom:8px">📋 Anuncios publicados</div>
+          <div id="ann-list">Cargando...</div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -140,6 +178,13 @@ function adminShowMsg(text, ok) {
 
 function adminShowGiftAllMsg(text, ok) {
   const el = document.getElementById('admin-gift-all-msg');
+  el.textContent = text;
+  el.style.color = ok ? '#4caf50' : '#f44336';
+  setTimeout(function () { el.textContent = ''; }, 4000);
+}
+
+function adminShowAnnMsg(text, ok) {
+  const el = document.getElementById('ann-publish-msg');
   el.textContent = text;
   el.style.color = ok ? '#4caf50' : '#f44336';
   setTimeout(function () { el.textContent = ''; }, 4000);
@@ -413,8 +458,6 @@ async function adminGiftAll(amount) {
   let ok = 0;
 
   if (typeof db !== 'undefined' && db) {
-    // En paralelo (no uno por uno) y con incremento atómico
-    // (sin leer primero: menos peticiones y sin condiciones de carrera).
     const results = await Promise.allSettled(
       usernames.map(function (username) {
         return adminWithTimeout(
@@ -450,8 +493,6 @@ async function adminGiftAll(amount) {
 }
 
 // ── Comprobar regalo pendiente del admin ──────────────────────────────
-// Solo muestra el popup si el jugador está en la pantalla del juego (app-screen visible).
-// Si Firestore responde tarde y el jugador ya salió o está en login, no mostramos nada.
 async function checkAdminGift(username) {
   if (!username || typeof db === 'undefined' || !db) return;
   try {
@@ -461,30 +502,24 @@ async function checkAdminGift(username) {
     const amount = doc.data().amount || 0;
     if (amount <= 0) { await ref.delete(); return; }
 
-    // Aplicar monedas al jugador local
     const users = UserStore.load();
     if (users[username]) {
       users[username].coins = (users[username].coins || 0) + amount;
       UserStore.save(users);
     }
 
-    // Borrar el regalo para que no se aplique dos veces
     await ref.delete();
 
-    // Solo mostrar el popup si el jugador sigue en la pantalla de juego
     const appScreen = document.getElementById('app-screen');
     if (!appScreen || appScreen.classList.contains('hidden')) return;
 
-    // Actualizar balance visible
     const balanceEl = document.getElementById('balance-amount');
     if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
 
-    // Sincronizar con Firestore
     if (typeof pushUserData === 'function' && users[username]) {
       pushUserData(username, users[username]);
     }
 
-    // Mostrar popup
     document.getElementById('admin-gift-popup-text').textContent =
       'El administrador te ha regalado ' + amount.toLocaleString() + ' monedas 🪙';
     const popup = document.getElementById('admin-gift-popup');
@@ -496,20 +531,154 @@ async function checkAdminGift(username) {
   }
 }
 
+// =====================================================================
+//  GESTIÓN DE ANUNCIOS (pestaña admin)
+// =====================================================================
+
+// Genera un id único basado en timestamp
+function annNextId(existing) {
+  if (!existing || existing.length === 0) return 1;
+  return existing.reduce(function (max, a) { return a.id > max ? a.id : max; }, 0) + 1;
+}
+
+// Formatea la fecha actual como "20 ago", "3 sep", etc.
+function annTodayLabel() {
+  const now = new Date();
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return now.getDate() + ' ' + months[now.getMonth()];
+}
+
+// Carga anuncios desde Firestore y los renderiza en la lista del admin
+async function adminLoadAnnouncements() {
+  const listEl = document.getElementById('ann-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">Cargando...</div>';
+
+  if (typeof db === 'undefined' || !db) {
+    listEl.innerHTML = '<div style="color:#f44336;font-size:13px">⚠️ Firestore no disponible. Los anuncios no se pueden gestionar sin conexión.</div>';
+    return;
+  }
+
+  try {
+    const snap = await db.collection('announcements').orderBy('id', 'desc').get();
+    if (snap.empty) {
+      listEl.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:12px">No hay anuncios publicados aún.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    snap.docs.forEach(function (doc) {
+      const a = doc.data();
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#1a1505;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #f5c51822';
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="color:#888;font-size:11px;margin-bottom:2px">' + (a.date || '') + ' · id #' + a.id + '</div>' +
+            '<div style="color:#f5c518;font-weight:700;font-size:14px;margin-bottom:4px;word-break:break-word">' + (a.title || '') + '</div>' +
+            '<div style="color:#ccc;font-size:13px;word-break:break-word">' + (a.body || '') + '</div>' +
+            (a.cta ? '<div style="color:#888;font-size:11px;margin-top:6px">CTA: ' + a.cta + ' → ' + (a.ctaTab || 'home') + '</div>' : '') +
+          '</div>' +
+          '<button type="button" data-annid="' + a.id + '" class="ann-delete-btn" style="background:#8b0000;border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;flex-shrink:0">🗑️</button>' +
+        '</div>';
+      listEl.appendChild(card);
+    });
+
+    // Eventos de borrado
+    listEl.querySelectorAll('.ann-delete-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const annId = parseInt(btn.getAttribute('data-annid'), 10);
+        if (!confirm('¿Eliminar el anuncio #' + annId + '?')) return;
+        await adminDeleteAnnouncement(annId);
+      });
+    });
+
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:#f44336;font-size:13px">Error al cargar anuncios: ' + e.message + '</div>';
+  }
+}
+
+// Publica un nuevo anuncio en Firestore
+async function adminPublishAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const cta = document.getElementById('ann-cta').value.trim();
+  const ctaTab = document.getElementById('ann-ctatab').value;
+
+  if (!title || !body) { adminShowAnnMsg('El título y la descripción son obligatorios.', false); return; }
+
+  if (typeof db === 'undefined' || !db) {
+    adminShowAnnMsg('⚠️ Sin conexión a Firestore. No se puede publicar.', false);
+    return;
+  }
+
+  const btn = document.getElementById('ann-publish-btn');
+  btn.disabled = true;
+  btn.textContent = 'Publicando...';
+
+  try {
+    // Obtener el id máximo actual para asignar el siguiente
+    const snap = await db.collection('announcements').get();
+    const existing = snap.docs.map(function (d) { return d.data(); });
+    const newId = annNextId(existing);
+    const newAnn = {
+      id: newId,
+      date: annTodayLabel(),
+      title: title,
+      body: body,
+      createdAt: Date.now()
+    };
+    if (cta) { newAnn.cta = cta; newAnn.ctaTab = ctaTab; }
+
+    await db.collection('announcements').doc(String(newId)).set(newAnn);
+
+    // Limpiar formulario
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-body').value = '';
+    document.getElementById('ann-cta').value = '';
+    document.getElementById('ann-ctatab').value = 'home';
+
+    adminShowAnnMsg('✅ Anuncio #' + newId + ' publicado. Los jugadores lo verán al abrir el buzón.', true);
+
+    // Recargar lista
+    await adminLoadAnnouncements();
+
+  } catch (e) {
+    adminShowAnnMsg('Error al publicar: ' + e.message, false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📢 Publicar anuncio';
+}
+
+// Elimina un anuncio de Firestore por id
+async function adminDeleteAnnouncement(annId) {
+  if (typeof db === 'undefined' || !db) return;
+  try {
+    await db.collection('announcements').doc(String(annId)).delete();
+    await adminLoadAnnouncements();
+  } catch (e) {
+    alert('Error al eliminar: ' + e.message);
+  }
+}
+
 // ── Cambio de pestañas del admin ──────────────────────────────────────
 function adminShowTab(tab) {
-  const usersTab = document.getElementById('admin-tab-users');
-  const eventsTab = document.getElementById('admin-tab-events');
-  const usersBtn = document.getElementById('admin-tabbtn-users');
-  const eventsBtn = document.getElementById('admin-tabbtn-events');
+  const tabs = ['users', 'events', 'announcements'];
+  tabs.forEach(function (t) {
+    const el = document.getElementById('admin-tab-' + t);
+    const btn = document.getElementById('admin-tabbtn-' + t);
+    if (!el || !btn) return;
+    const active = t === tab;
+    el.classList.toggle('hidden', !active);
+    btn.style.color = active ? '#f5c518' : '#8a7c5a';
+    btn.style.borderBottomColor = active ? '#f5c518' : 'transparent';
+  });
 
-  usersTab.classList.toggle('hidden', tab !== 'users');
-  eventsTab.classList.toggle('hidden', tab !== 'events');
-
-  usersBtn.style.color = tab === 'users' ? '#f5c518' : '#8a7c5a';
-  usersBtn.style.borderBottomColor = tab === 'users' ? '#f5c518' : 'transparent';
-  eventsBtn.style.color = tab === 'events' ? '#f5c518' : '#8a7c5a';
-  eventsBtn.style.borderBottomColor = tab === 'events' ? '#f5c518' : 'transparent';
+  // Cargar datos al activar la pestaña de anuncios
+  if (tab === 'announcements') {
+    adminLoadAnnouncements();
+  }
 }
 
 // ── Eventos ───────────────────────────────────────────────────────────
@@ -517,6 +686,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('admin-tabbtn-users').addEventListener('click', function () { adminShowTab('users'); });
   document.getElementById('admin-tabbtn-events').addEventListener('click', function () { adminShowTab('events'); });
+  document.getElementById('admin-tabbtn-announcements').addEventListener('click', function () { adminShowTab('announcements'); });
+
+  document.getElementById('ann-publish-btn').addEventListener('click', adminPublishAnnouncement);
 
   document.getElementById('admin-logout-btn').addEventListener('click', function () {
     adminHideAll();
@@ -617,8 +789,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Cerrar popup regalo
   document.getElementById('admin-gift-popup-ok').addEventListener('click', function () {
     const popup = document.getElementById('admin-gift-popup');
-    popup.classList.add('hidden');
+    popup.classList.remove('hidden');
     popup.style.display = 'none';
+    popup.classList.add('hidden');
   });
 
 });
