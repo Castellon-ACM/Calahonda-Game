@@ -104,6 +104,15 @@ async function fetchRemoteUser(username) {
 
 // Carga los datos de un usuario desde Firestore y los aplica al localStorage.
 // Se llama al hacer login para sincronizar monedas/inventario que el admin haya modificado.
+//
+// IMPORTANTE — por qué NO comparamos updatedAt para las monedas:
+// El admin usa una transacción atómica en Firestore para ajustar coins. Esa transacción
+// actualiza updatedAt en Firestore. Pero si el jugador estuvo activo después de que el
+// admin hiciera el cambio, su localStorage tendrá un updatedAt más reciente, con lo que
+// la comparación "remoteUpdated > localUpdated" fallaría y se ignorarían las monedas dadas.
+// Solución: coins SIEMPRE se toma de Firestore (es la fuente de verdad para monedas).
+// El resto (inventory, email, banned) sigue usando la comparación de fecha para no pisar
+// cambios legítimos que el jugador haya hecho en este dispositivo.
 async function pullUserData(username) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -113,33 +122,63 @@ async function pullUserData(username) {
     const users = UserStore.load();
     if (!users[username]) return;
 
-    // Los regalos de skins del admin se fusionan siempre (no se pisan entre sí,
-    // ni dependen de qué dispositivo tenga los datos más recientes).
+    // ── Skins: siempre fusionar (merge) ──────────────────────────────
     if (remote.ownedSkins) {
       users[username].ownedSkins = Object.assign({}, users[username].ownedSkins || {}, remote.ownedSkins);
-      UserStore.save(users);
     }
 
-    // El hash de contraseña siempre se sincroniza si el servidor tiene uno más nuevo
-    // (por ejemplo, si se cambió desde otro dispositivo).
+    // ── Hash de contraseña: siempre sincronizar si hay uno más nuevo ──
     if (remote.passwordHash && remote.passwordHash !== users[username].passwordHash) {
       users[username].passwordHash = remote.passwordHash;
-      delete users[username].password; // ya no hace falta la versión en texto plano
-      UserStore.save(users);
+      delete users[username].password;
     }
 
-    // Aplicar el resto solo si los datos remotos son más recientes
+    // ── Monedas: SIEMPRE tomar el valor de Firestore ──────────────────
+    // Firestore es la fuente de verdad para coins. El admin escribe ahí de
+    // forma atómica; si el jugador tiene un updatedAt más nuevo en local no
+    // significa que sus monedas sean las correctas, solo que jugó más tarde.
+    if (remote.coins !== undefined) {
+      users[username].coins = remote.coins;
+    }
+
+    // ── Resto (inventory, email, banned): comparar fechas ─────────────
     const localUpdated = users[username].updatedAt || 0;
     const remoteUpdated = remote.updatedAt || 0;
     if (remoteUpdated > localUpdated) {
-      users[username].coins = remote.coins || users[username].coins;
-      users[username].inventory = remote.inventory || users[username].inventory;
-      users[username].email = remote.email || users[username].email;
-      users[username].banned = remote.banned || users[username].banned;
+      if (remote.inventory) users[username].inventory = remote.inventory;
+      if (remote.email) users[username].email = remote.email;
+      if (remote.banned !== undefined) users[username].banned = remote.banned;
       users[username].updatedAt = remoteUpdated;
-      UserStore.save(users);
     }
+
+    UserStore.save(users);
   } catch (e) {
     console.warn('No se pudo cargar datos remotos del usuario:', e);
+  }
+}
+
+// Sincroniza las monedas desde Firestore mientras el jugador está en sesión.
+// Se llama periódicamente (cada 60 s) o al volver al foco para que los cambios
+// del admin (dar/quitar monedas) lleguen sin necesidad de cerrar sesión.
+async function syncCoinsFromFirestore(username) {
+  if (!firebaseReady || !db || !username) return;
+  try {
+    const doc = await db.collection('users').doc(username).get();
+    if (!doc.exists) return;
+    const remoteCoins = doc.data().coins;
+    if (remoteCoins === undefined) return;
+
+    const users = UserStore.load();
+    if (!users[username]) return;
+    if (users[username].coins === remoteCoins) return; // nada que actualizar
+
+    users[username].coins = remoteCoins;
+    UserStore.save(users);
+
+    // Refrescar el balance visible si la app está en pantalla
+    const balanceEl = document.getElementById('balance-amount');
+    if (balanceEl) balanceEl.textContent = remoteCoins;
+  } catch (e) {
+    console.warn('No se pudo sincronizar monedas:', e);
   }
 }
