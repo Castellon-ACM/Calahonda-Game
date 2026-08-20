@@ -1,1 +1,450 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Alcohol 365</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0a05">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Alcohol 365">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="css/style.css?v=20260820a">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js?v=20260819b"></script>
+
+<!-- Registro del service worker para auto-actualización -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      console.log('[App] SW registrado:', reg.scope);
+
+      // Forzar comprobación de versión nueva en cuanto carga
+      reg.update();
+
+      // Y también cada vez que la app vuelve a primer plano
+      // (cubre el caso típico de iOS: abrir el icono sin cerrarlo del todo antes)
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          reg.update();
+        }
+      });
+    }).catch(function (err) {
+      console.warn('[App] SW error:', err);
+    });
+
+    navigator.serviceWorker.addEventListener('message', function (event) {
+      if (event.data && event.data.type === 'SW_UPDATED') {
+        console.log('[App] Nueva versión detectada:', event.data.version, '— recargando...');
+        window.location.reload();
+      }
+    });
+  }
+</script>
+</head>
+<body>
+
+
+  <!-- Pantalla LOGIN -->
+  <div id="login-screen" class="screen">
+    <div class="coin-wrap">
+      <canvas id="coin-login" width="176" height="176" style="width:176px;height:176px;"></canvas>
+    </div>
+
+    <div class="card">
+      <h1>Iniciar sesión</h1>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-user">Usuario</label>
+          <input type="text" id="login-user" placeholder="tu usuario" required>
+        </div>
+        <div class="field">
+          <label for="login-pass">Contraseña</label>
+          <input type="password" id="login-pass" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn">Entrar</button>
+        <div class="error" id="login-error">Rellena usuario y contraseña</div>
+      </form>
+      <div class="switch-text">
+        ¿No tienes cuenta? <a href="#" id="go-register">Regístrate</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla REGISTRO -->
+  <div id="register-screen" class="screen hidden">
+    <div class="coin-wrap">
+      <canvas id="coin-register" width="120" height="120" style="width:120px;height:120px;"></canvas>
+    </div>
+
+    <div class="card">
+      <h1>Crear cuenta</h1>
+      <form id="register-form">
+        <div class="field">
+          <label for="reg-user">Usuario</label>
+          <input type="text" id="reg-user" placeholder="elige un usuario" required>
+        </div>
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" placeholder="tu@email.com" required>
+        </div>
+        <div class="field">
+          <label for="reg-pass">Contraseña</label>
+          <input type="password" id="reg-pass" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn">Registrarme</button>
+        <div class="error" id="register-error">Rellena todos los campos</div>
+      </form>
+      <div class="switch-text">
+        ¿Ya tienes cuenta? <a href="#" id="go-login">Inicia sesión</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla tras entrar: topbar + pestañas (Inicio / Casino / Evento / Apoyo) -->
+  <div id="app-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar">
+      <div class="avatar-btn" id="avatar-btn"></div>
+    </div>
+
+    <div class="app-content">
+      <!-- PESTAÑA INICIO -->
+      <div id="tab-home" class="app-tab">
+        <div class="game">
+          <div class="balance-card">
+            <div class="balance-left">
+              <div class="balance-coin"></div>
+              <div class="balance-amount" id="balance-amount">0</div>
+            </div>
+            <button type="button" class="btn claim-btn" id="claim-btn">Reclamar 200 monedas</button>
+          </div>
+
+          <div class="roulette-wrap">
+            <div class="roulette-pointer"></div>
+            <div class="roulette-track" id="roulette-track"></div>
+          </div>
+
+          <div class="spin-mult-row">
+            <button type="button" class="spin-mult-btn selected" data-mult="1">x1</button>
+            <button type="button" class="spin-mult-btn" data-mult="3">x3</button>
+            <button type="button" class="spin-mult-btn" data-mult="5">x5</button>
+            <button type="button" class="spin-mult-btn" data-mult="10">x10</button>
+          </div>
+          <button type="button" class="btn spin-btn" id="spin-btn">Girar ruleta (10 🪙)</button>
+          <div class="spin-result" id="spin-result"></div>
+
+          <div class="inventory-title">Tu colección</div>
+          <div class="inventory-grid" id="inventory-grid"></div>
+
+          <div class="inventory-title">Ruleta de cosméticos</div>
+          <div class="roulette-wrap">
+            <div class="roulette-pointer"></div>
+            <div class="roulette-track" id="cosmetics-track"></div>
+          </div>
+          <button type="button" class="btn spin-btn" id="cosmetics-spin-btn">Girar (30 🪙)</button>
+          <div class="spin-result" id="cosmetics-result"></div>
+          <div class="cosmetics-paytable">
+            <div>😎🎉🧣🎀 comunes · 👔🇪🇸🦸 raras</div>
+            <div>🎅🎩 épicas · 👑 legendaria</div>
+            <div>Si repites una que ya tienes, recuperas la mitad de la apuesta</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA CASINO -->
+      <div id="tab-casino" class="app-tab hidden">
+        <div class="game">
+          <div class="balance-card">
+            <div class="balance-left">
+              <div class="balance-coin"></div>
+              <div class="balance-amount" id="casino-balance-amount">0</div>
+            </div>
+          </div>
+
+          <!-- MENÚ DE JUEGOS -->
+          <div id="casino-menu" class="casino-menu-grid">
+            <div class="casino-game-card" data-game="roulette">
+              <div class="icon">🎡</div>
+              <div class="title">Ruleta</div>
+            </div>
+            <div class="casino-game-card" data-game="slots">
+              <div class="icon">🎰</div>
+              <div class="title">Tragaperras</div>
+            </div>
+            <div class="casino-game-card" data-game="blackjack">
+              <div class="icon">🃏</div>
+              <div class="title">Blackjack</div>
+            </div>
+            <div class="casino-game-card" data-game="turtles">
+              <div class="icon">🐢</div>
+              <div class="title">Carreras de tortugas</div>
+            </div>
+            <div class="casino-game-card" data-game="poker">
+              <div class="icon">♠️</div>
+              <div class="title">Póker multijugador</div>
+            </div>
+          </div>
+
+          <!-- RULETA -->
+          <div id="casino-game-roulette" class="casino-subgame hidden">
+            <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
+
+            <div class="wheel-wrap" id="wheel-wrap">
+              <div class="wheel-pointer"></div>
+              <div class="wheel" id="wheel"></div>
+              <div class="ball-track" id="ball-track"><div class="ball"></div></div>
+              <div class="wheel-hub"></div>
+            </div>
+            <div class="wheel-result-number" id="wheel-result-number"></div>
+
+            <div class="roulette-history" id="roulette-history"></div>
+
+            <div class="chip-row" id="chip-row">
+              <button type="button" class="chip chip-10 selected" data-amount="10">10</button>
+              <button type="button" class="chip chip-50" data-amount="50">50</button>
+              <button type="button" class="chip chip-100" data-amount="100">100</button>
+              <button type="button" class="chip chip-500" data-amount="500">500</button>
+              <button type="button" class="chip chip-max" id="chip-max">MAX</button>
+              <button type="button" class="chip chip-eraser" id="chip-eraser" title="Borrar apuesta">🧹</button>
+            </div>
+            <input type="number" id="bet-amount" min="1" placeholder="O escribe otra cantidad" class="bet-amount-input">
+
+            <div class="roulette-table" id="roulette-table"></div>
+
+            <div class="bet-slip-total" id="bet-slip-total"></div>
+
+            <button type="button" class="btn spin-btn" id="casino-spin-btn">Girar ruleta</button>
+            <button type="button" class="btn repeat-bet-btn" id="repeat-bet-btn">🔁 Repetir apuesta anterior</button>
+            <div class="spin-result" id="casino-result"></div>
+          </div>
+
+          <!-- TRAGAPERRAS -->
+          <div id="casino-game-slots" class="casino-subgame hidden">
+            <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
+
+            <div class="slots-win-banner" id="slots-win-banner"></div>
+            <div class="slots-machine">
+              <div class="slot-reel" id="slot-reel-0">🍒</div>
+              <div class="slot-reel" id="slot-reel-1">🍒</div>
+              <div class="slot-reel" id="slot-reel-2">🍒</div>
+            </div>
+            <div class="spin-result" id="slots-result"></div>
+
+            <div class="chip-row">
+              <button type="button" class="chip chip-10 slots-chip selected" data-amount="10">10</button>
+              <button type="button" class="chip chip-50 slots-chip" data-amount="50">50</button>
+              <button type="button" class="chip chip-100 slots-chip" data-amount="100">100</button>
+              <button type="button" class="chip chip-500 slots-chip" data-amount="500">500</button>
+            </div>
+            <input type="number" id="slots-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
+            <button type="button" class="btn spin-btn" id="slots-spin-btn">Tirar de la palanca</button>
+
+            <div class="slots-paytable">
+              <div>🍒🍒🍒 x4 · 🍋🍋🍋 x6 · 🔔🔔🔔 x10</div>
+              <div>⭐⭐⭐ x16 · 💎💎💎 x40 · 7️⃣7️⃣7️⃣ x100</div>
+              <div>Dos iguales: recuperas la apuesta</div>
+            </div>
+          </div>
+
+          <!-- BLACKJACK -->
+          <div id="casino-game-blackjack" class="casino-subgame hidden">
+            <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
+
+            <div class="bj-label">Crupier</div>
+            <div class="bj-hand" id="bj-dealer-hand"></div>
+            <div class="bj-value" id="bj-dealer-value"></div>
+
+            <div class="bj-label">Tu mano</div>
+            <div class="bj-hand" id="bj-player-hand"></div>
+            <div class="bj-value" id="bj-player-value"></div>
+
+            <div class="spin-result" id="bj-result"></div>
+
+            <div id="bj-bet-controls">
+              <div class="chip-row">
+                <button type="button" class="chip chip-10 bj-chip selected" data-amount="10">10</button>
+                <button type="button" class="chip chip-50 bj-chip" data-amount="50">50</button>
+                <button type="button" class="chip chip-100 bj-chip" data-amount="100">100</button>
+                <button type="button" class="chip chip-500 bj-chip" data-amount="500">500</button>
+              </div>
+              <input type="number" id="bj-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
+              <button type="button" class="btn spin-btn" id="bj-deal-btn">Repartir cartas</button>
+            </div>
+
+            <div id="bj-actions" class="bj-actions-row hidden">
+              <button type="button" class="btn bj-action-btn" id="bj-hit-btn">Pedir carta</button>
+              <button type="button" class="btn bj-action-btn bj-stand-btn" id="bj-stand-btn">Plantarse</button>
+            </div>
+          </div>
+
+          <!-- CARRERAS DE TORTUGAS -->
+          <div id="casino-game-turtles" class="casino-subgame hidden">
+            <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
+
+            <div class="turtle-track-wrap" id="turtle-track-wrap"></div>
+            <div class="spin-result" id="turtle-result"></div>
+
+            <div class="turtle-select-row" id="turtle-select-row"></div>
+
+            <div class="chip-row">
+              <button type="button" class="chip chip-10 turtle-chip selected" data-amount="10">10</button>
+              <button type="button" class="chip chip-50 turtle-chip" data-amount="50">50</button>
+              <button type="button" class="chip chip-100 turtle-chip" data-amount="100">100</button>
+              <button type="button" class="chip chip-500 turtle-chip" data-amount="500">500</button>
+            </div>
+            <input type="number" id="turtle-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
+            <button type="button" class="btn spin-btn" id="turtle-race-btn">Apostar y correr (x3)</button>
+          </div>
+
+          <!-- PÓKER MULTIJUGADOR -->
+          <div id="casino-game-poker" class="casino-subgame hidden"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA EVENTO -->
+      <div id="tab-event" class="app-tab hidden">
+        <div class="game">
+          <div id="event-content"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA APOYO -->
+      <div id="tab-support" class="app-tab hidden">
+        <div class="game">
+          <div id="support-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-tabbar">
+      <button class="tabbar-btn active" id="tabbtn-home" data-tab="home">
+        <span class="tabbar-icon">🏠</span><span>Inicio</span>
+      </button>
+      <button class="tabbar-btn" id="tabbtn-casino" data-tab="casino">
+        <span class="tabbar-icon">🎰</span><span>Casino</span>
+      </button>
+      <button class="tabbar-btn hidden" id="tabbtn-event" data-tab="event">
+        <span class="tabbar-icon">🃏</span><span>Evento</span>
+      </button>
+      <button class="tabbar-btn" id="tabbtn-support" data-tab="support">
+        <span class="tabbar-icon">☕</span><span>Apoyo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Pantalla de CUENTA -->
+  <div id="account-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="account-back">←</button>
+      <div class="avatar-btn" id="avatar-btn-account"></div>
+    </div>
+    <div class="screen-body">
+      <div class="card">
+        <h1>Mi cuenta</h1>
+        <div class="field">
+          <label for="account-user">Usuario</label>
+          <input type="text" id="account-user">
+        </div>
+        <div class="field">
+          <label for="account-email">Email</label>
+          <input type="email" id="account-email">
+        </div>
+        <div class="field">
+          <label for="account-pass">Nueva contraseña</label>
+          <input type="password" id="account-pass" placeholder="Deja en blanco para no cambiarla">
+        </div>
+        <button type="button" class="btn" id="account-save">Guardar cambios</button>
+        <div class="error" id="account-error"></div>
+        <div class="success-msg" id="account-success">Cambios guardados</div>
+        <button type="button" class="btn logout-btn" id="account-logout">Cerrar sesión</button>
+
+        <div class="account-stats">
+          <div class="account-stat-row">
+            <span>Tus monedas</span>
+            <span id="account-coins-display">0</span>
+          </div>
+        </div>
+
+        <div class="inventory-title">Tu colección</div>
+        <div class="inventory-grid" id="account-inventory-grid"></div>
+
+        <button type="button" class="btn ranking-btn" id="view-ranking-btn">Ver ranking de jugadores</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de RANKING -->
+  <div id="ranking-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="ranking-back">←</button>
+      <div class="avatar-btn" id="avatar-btn-ranking"></div>
+    </div>
+    <div class="screen-body ranking-body">
+      <div class="card">
+        <h1>Ranking de jugadores</h1>
+        <div id="ranking-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de PERFIL VISITADO -->
+  <div id="visitor-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="visitor-back">←</button>
+      <div class="avatar-btn" id="avatar-btn-visitor"></div>
+    </div>
+    <div class="screen-body ranking-body">
+      <div class="card">
+        <h1 id="visitor-title">Colección</h1>
+        <div class="inventory-grid" id="visitor-inventory-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de DETALLE 3D DE BOTELLA -->
+  <div id="bottle-detail-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="bottle-detail-back">←</button>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="screen-body">
+      <div id="bottle-detail-title" class="bottle-detail-title"></div>
+      <canvas id="bottle-3d-canvas" width="260" height="320" style="width:260px;height:320px;touch-action:none;"></canvas>
+      <div id="bottle-detail-level" class="bottle-detail-level"></div>
+      <div class="bottle-progress-wrap bottle-detail-bar">
+        <div class="bottle-progress-fill" id="bottle-detail-fill"></div>
+      </div>
+      <div id="bottle-detail-progress-label" class="bottle-detail-progress-label"></div>
+      <div class="bottle-detail-hint">Arrastra para girarla</div>
+      <div class="skin-title">Viste tu botella</div>
+      <div class="skin-row" id="skin-row"></div>
+      <div class="skin-hint">Consigue skins nuevas en Inicio → Ruleta de cosméticos</div>
+    </div>
+  </div>
+
+  <script src="js/coin3d.js?v=20260819"></script>
+  <script src="js/bottle3d.js?v=20260819"></script>
+  <script src="js/skins.js?v=20260819b"></script>
+  <script src="js/store.js?v=20260819"></script>
+  <script src="js/navigation.js?v=20260819d"></script>
+  <script src="js/casino-roulette.js?v=20260820a"></script>
+  <script src="js/casino-slots.js?v=20260819"></script>
+  <script src="js/casino-blackjack.js?v=20260819"></script>
+  <script src="js/casino-turtles.js?v=20260819"></script>
+  <script src="js/casino-cosmetics.js?v=20260819b"></script>
+  <script src="js/casino-poker.js?v=20260820a"></script>
+  <script src="js/game-bottles.js?v=20260819d"></script>
+  <script src="js/account-ranking-auth.js?v=20260819b"></script>
+  <script src="js/admin.js?v=20260819"></script>
+  <script src="js/event.js?v=20260819b"></script>
+  <script src="js/support.js?v=20260819"></script>
+  <script src="js/steal.js?v=20260819"></script>
+
+</body>
+</html>
