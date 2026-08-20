@@ -15,75 +15,92 @@ const ADMIN_PASS = 'papaplaya';
       <span style="color:#f5c518;font-weight:700;font-size:15px">⚙️ Admin</span>
       <div style="width:38px"></div>
     </div>
+
+    <!-- Pestañas del admin -->
+    <div style="display:flex;background:#161116;border-bottom:1px solid #3a2c14">
+      <button type="button" class="admin-tab-btn active" id="admin-tabbtn-users" style="flex:1;background:none;border:none;color:#f5c518;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid #f5c518">👥 Usuarios</button>
+      <button type="button" class="admin-tab-btn" id="admin-tabbtn-events" style="flex:1;background:none;border:none;color:#8a7c5a;padding:12px 4px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent">🎉 Eventos y avisos</button>
+    </div>
+
     <div class="screen-body">
       <div class="card">
-        <h1>Panel de administración</h1>
 
-        <!-- Buscador: input 100% + botón debajo 100% -->
-        <div class="field" style="margin-bottom:12px">
-          <label style="display:block;margin-bottom:4px">Buscar usuario</label>
-          <input type="text" id="admin-search" placeholder="nombre de usuario" style="width:100%;box-sizing:border-box;margin-bottom:6px">
-          <button type="button" class="btn" id="admin-search-btn" style="width:100%;box-sizing:border-box;padding:10px;white-space:nowrap;overflow:hidden;min-width:0">🔍 Buscar</button>
-        </div>
+        <!-- ============ PESTAÑA: USUARIOS ============ -->
+        <div id="admin-tab-users">
+          <h1>Usuarios</h1>
 
-        <!-- Stats globales -->
-        <div id="admin-global-stats" style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0">
-          <div style="color:#f5c518;font-weight:700;margin-bottom:8px">📊 Stats globales</div>
-          <div id="admin-stats-content" style="color:#ccc;font-size:13px">Cargando...</div>
-        </div>
-
-        <!-- Fuente de datos activa -->
-        <div id="admin-source-badge" style="font-size:11px;color:#aaa;margin-bottom:8px;text-align:right"></div>
-
-        <!-- DAR MONEDAS A TODOS -->
-        <div style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0;border:1px solid #f5c51833">
-          <div style="color:#f5c518;font-weight:700;margin-bottom:8px">🎁 Dar monedas a TODOS</div>
-          <div style="color:#aaa;font-size:12px;margin-bottom:8px">Al entrar al juego verán un popup de regalo.</div>
-          <input type="number" id="admin-gift-all-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
-          <button type="button" class="btn" id="admin-gift-all-btn" style="width:100%;box-sizing:border-box;padding:11px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🎁 Enviar regalo a todos</button>
-          <div id="admin-gift-all-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
-        </div>
-
-        <!-- Lista de usuarios -->
-        <div style="color:#f5c518;font-weight:700;margin:16px 0 8px">👥 Todos los usuarios</div>
-        <div id="admin-user-list">Cargando...</div>
-
-        <!-- Modal detalle usuario -->
-        <div id="admin-user-modal" class="hidden" style="background:#1a1505;border-radius:16px;padding:18px;margin-top:16px;border:1px solid #f5c51855;box-sizing:border-box;width:100%;overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div style="color:#f5c518;font-weight:700;font-size:16px;word-break:break-word;flex:1;margin-right:8px" id="admin-modal-title">Usuario</div>
-            <button type="button" id="admin-modal-close" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;flex-shrink:0">✕</button>
+          <!-- Buscador: input 100% + botón debajo 100% -->
+          <div class="field" style="margin-bottom:12px">
+            <label style="display:block;margin-bottom:4px">Buscar usuario</label>
+            <input type="text" id="admin-search" placeholder="nombre de usuario" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+            <button type="button" class="btn" id="admin-search-btn" style="width:100%;box-sizing:border-box;padding:10px;white-space:nowrap;overflow:hidden;min-width:0">🔍 Buscar</button>
           </div>
 
-          <div id="admin-modal-source" style="font-size:11px;color:#888;margin-bottom:6px"></div>
-          <div id="admin-modal-coins" style="color:#ccc;font-size:13px;margin-bottom:4px"></div>
-          <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px;word-break:break-all"></div>
-          <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:14px"></div>
-
-          <!-- Dar / quitar monedas -->
-          <div style="margin-bottom:14px">
-            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
-            <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
-            <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">✅ Dar monedas</button>
-            <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">❌ Quitar monedas</button>
+          <!-- Stats globales -->
+          <div id="admin-global-stats" style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0">
+            <div style="color:#f5c518;font-weight:700;margin-bottom:8px">📊 Stats globales</div>
+            <div id="admin-stats-content" style="color:#ccc;font-size:13px">Cargando...</div>
           </div>
 
-          <!-- Cambiar contraseña -->
-          <div style="margin-bottom:14px">
-            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#555">(solo si está en este dispositivo)</span></div>
-            <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
-            <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">💾 Guardar contraseña</button>
+          <!-- Fuente de datos activa -->
+          <div id="admin-source-badge" style="font-size:11px;color:#aaa;margin-bottom:8px;text-align:right"></div>
+
+          <!-- Lista de usuarios -->
+          <div style="color:#f5c518;font-weight:700;margin:16px 0 8px">👥 Todos los usuarios</div>
+          <div id="admin-user-list">Cargando...</div>
+
+          <!-- Modal detalle usuario -->
+          <div id="admin-user-modal" class="hidden" style="background:#1a1505;border-radius:16px;padding:18px;margin-top:16px;border:1px solid #f5c51855;box-sizing:border-box;width:100%;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="color:#f5c518;font-weight:700;font-size:16px;word-break:break-word;flex:1;margin-right:8px" id="admin-modal-title">Usuario</div>
+              <button type="button" id="admin-modal-close" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;flex-shrink:0">✕</button>
+            </div>
+
+            <div id="admin-modal-source" style="font-size:11px;color:#888;margin-bottom:6px"></div>
+            <div id="admin-modal-coins" style="color:#ccc;font-size:13px;margin-bottom:4px"></div>
+            <div id="admin-modal-email" style="color:#ccc;font-size:13px;margin-bottom:8px;word-break:break-all"></div>
+            <div id="admin-modal-value" style="color:#ccc;font-size:13px;margin-bottom:14px"></div>
+
+            <!-- Dar / quitar monedas -->
+            <div style="margin-bottom:14px">
+              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
+              <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+              <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">✅ Dar monedas</button>
+              <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">❌ Quitar monedas</button>
+            </div>
+
+            <!-- Cambiar contraseña -->
+            <div style="margin-bottom:14px">
+              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Cambiar contraseña <span style="color:#555">(solo si está en este dispositivo)</span></div>
+              <input type="password" id="admin-newpass-input" placeholder="nueva contraseña" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+              <button type="button" class="btn" id="admin-change-pass-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">💾 Guardar contraseña</button>
+            </div>
+
+            <!-- Inventario -->
+            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Inventario</div>
+            <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;margin-bottom:14px"></div>
+
+            <!-- Acciones peligrosas -->
+            <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">🚫 Banear usuario</button>
+            <button type="button" class="btn logout-btn" id="admin-delete-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🗑️ Eliminar cuenta</button>
+
+            <div id="admin-modal-msg" style="margin-top:10px;font-size:13px;text-align:center"></div>
           </div>
+        </div>
 
-          <!-- Inventario -->
-          <div style="color:#aaa;font-size:12px;margin-bottom:6px">Inventario</div>
-          <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;margin-bottom:14px"></div>
+        <!-- ============ PESTAÑA: EVENTOS Y AVISOS ============ -->
+        <div id="admin-tab-events" class="hidden">
+          <h1>Eventos y avisos</h1>
 
-          <!-- Acciones peligrosas -->
-          <button type="button" class="btn" id="admin-ban-btn" style="background:#8b0000;width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">🚫 Banear usuario</button>
-          <button type="button" class="btn logout-btn" id="admin-delete-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🗑️ Eliminar cuenta</button>
-
-          <div id="admin-modal-msg" style="margin-top:10px;font-size:13px;text-align:center"></div>
+          <!-- DAR MONEDAS A TODOS -->
+          <div style="background:#1a1505;border-radius:12px;padding:14px;margin:12px 0;border:1px solid #f5c51833">
+            <div style="color:#f5c518;font-weight:700;margin-bottom:8px">🎁 Dar monedas a TODOS</div>
+            <div style="color:#aaa;font-size:12px;margin-bottom:8px">Al entrar al juego verán un popup de regalo.</div>
+            <input type="number" id="admin-gift-all-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
+            <button type="button" class="btn" id="admin-gift-all-btn" style="width:100%;box-sizing:border-box;padding:11px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">🎁 Enviar regalo a todos</button>
+            <div id="admin-gift-all-msg" style="margin-top:8px;font-size:13px;text-align:center"></div>
+          </div>
+          <!-- Aquí se inyectan dinámicamente: evento 3 cartas, evento cronómetro, apoyo/donaciones -->
         </div>
 
       </div>
@@ -479,8 +496,27 @@ async function checkAdminGift(username) {
   }
 }
 
+// ── Cambio de pestañas del admin ──────────────────────────────────────
+function adminShowTab(tab) {
+  const usersTab = document.getElementById('admin-tab-users');
+  const eventsTab = document.getElementById('admin-tab-events');
+  const usersBtn = document.getElementById('admin-tabbtn-users');
+  const eventsBtn = document.getElementById('admin-tabbtn-events');
+
+  usersTab.classList.toggle('hidden', tab !== 'users');
+  eventsTab.classList.toggle('hidden', tab !== 'events');
+
+  usersBtn.style.color = tab === 'users' ? '#f5c518' : '#8a7c5a';
+  usersBtn.style.borderBottomColor = tab === 'users' ? '#f5c518' : 'transparent';
+  eventsBtn.style.color = tab === 'events' ? '#f5c518' : '#8a7c5a';
+  eventsBtn.style.borderBottomColor = tab === 'events' ? '#f5c518' : 'transparent';
+}
+
 // ── Eventos ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+
+  document.getElementById('admin-tabbtn-users').addEventListener('click', function () { adminShowTab('users'); });
+  document.getElementById('admin-tabbtn-events').addEventListener('click', function () { adminShowTab('events'); });
 
   document.getElementById('admin-logout-btn').addEventListener('click', function () {
     adminHideAll();
