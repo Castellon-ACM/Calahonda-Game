@@ -16,10 +16,15 @@
 // que sí podemos hacer que capture cualquier clic mientras está visible,
 // para que ningún toque accidental del jugador llegue al juego de detrás
 // ni pueda volver a disparar nada por error.
+//
+// Sin cooldown entre anuncios: el jugador puede darle al botón todas las
+// veces que quiera seguidas (solo tiene que esperar la cuenta atrás de cada
+// uno). Ojo: Adsterra igualmente aplica sus propios límites de frecuencia
+// por su cuenta, así que no todos los intentos generarán una impresión real.
 // =====================================================================
 const AD_REWARD_AMOUNT = 20;
 const AD_WATCH_SECONDS = 10;
-const AD_REWARD_COOLDOWN_MS = 1 * 60 * 1000; // 1 minuto
+const AD_REWARD_COOLDOWN_MS = 0; // sin espera entre anuncios
 
 let _adOverlayTimer = null;
 
