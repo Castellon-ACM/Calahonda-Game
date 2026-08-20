@@ -204,11 +204,17 @@
         return;
       }
 
-      if (user === ADMIN_USER && pass === ADMIN_PASS) {
-        errorMsg.style.display = 'none';
-        hideAll();
-        document.getElementById('admin-screen').classList.remove('hidden');
-        adminLoadPanel();
+      if (user === ADMIN_USER) {
+        const adminHash = await sha256Hex(pass);
+        if (adminHash === ADMIN_PASS_HASH) {
+          errorMsg.style.display = 'none';
+          hideAll();
+          document.getElementById('admin-screen').classList.remove('hidden');
+          adminLoadPanel();
+        } else {
+          errorMsg.textContent = 'Contraseña incorrecta';
+          errorMsg.style.display = 'block';
+        }
         return;
       }
 
