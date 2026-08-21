@@ -1,11 +1,9 @@
 // =====================================================================
-//  GRUPOS / MINI LIGAS — crear grupo, unirse con código, ranking de grupo
-//  Reutiliza los datos ya descargados del ranking global (fetchGlobalLeaderboard)
-//  y simplemente los filtra por los miembros del grupo, para no duplicar
-//  consultas a Firestore.
+//  GRUPOS / MINI LIGAS — pertenencia a VARIOS grupos, cada uno con su
+//  propia cuenta (monedas + colección), más un perfil "solo" para cuando
+//  no se juega dentro de ningún grupo.
 // =====================================================================
 
-// Genera un código de 6 caracteres sin letras/números ambiguos (0/O, 1/I)
 function generateGroupCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -13,38 +11,64 @@ function generateGroupCode() {
   return code;
 }
 
-function groupShowMsg(text, ok) {
-  const el = document.getElementById('group-msg');
+function groupMsg(text, ok, elId) {
+  const el = document.getElementById(elId || 'group-msg');
   if (!el) return;
   el.textContent = text;
   el.style.color = ok ? '#8fd17c' : '#ff8f8f';
 }
 
-async function setMyGroupCode(code) {
+// ── Gestión local de la lista de grupos + grupo activo ────────────────
+async function addGroupMembership(code) {
   const users = UserStore.load();
-  if (!users[currentUser]) return;
-  users[currentUser].groupCode = code;
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  if (full.groups.indexOf(code) === -1) full.groups.push(code);
+  users[currentUser] = full;
   UserStore.save(users);
-  await pushUserData(currentUser, users[currentUser]);
+  const key = full.activeGroup || 'solo';
+  await pushUserData(currentUser, full.profiles[key]);
 }
 
-async function createGroup() {
-  if (!firebaseReady || !db) { groupShowMsg('Sin conexión, inténtalo más tarde', false); return; }
+async function removeGroupMembership(code) {
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  full.groups = full.groups.filter(function (g) { return g !== code; });
+  if (full.activeGroup === code) full.activeGroup = null;
+  users[currentUser] = full;
+  UserStore.save(users);
+  const key = full.activeGroup || 'solo';
+  await pushUserData(currentUser, full.profiles[key]);
+}
 
-  const existing = getCurrentUserData().groupCode;
-  if (existing) { groupShowMsg('Ya perteneces a un grupo. Sal de él primero.', false); return; }
+// Cambia el "perfil activo" (con qué monedas/colección se juega ahora
+// mismo) y refresca toda la pantalla del juego para que se note al momento.
+async function setActiveGroup(code) {
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  full.activeGroup = code || null;
+  users[currentUser] = ensureUserDefaults(currentUser, full);
+  UserStore.save(users);
+  const key = full.activeGroup || 'solo';
+  await pushUserData(currentUser, users[currentUser].profiles[key]);
+  if (typeof renderGame === 'function') renderGame();
+  if (typeof updateAllBalances === 'function') updateAllBalances(getCurrentUserData().coins);
+}
+
+// ── Crear / unirse / salir ─────────────────────────────────────────────
+async function createGroup(msgElId) {
+  if (!firebaseReady || !db) { groupMsg('Sin conexión, inténtalo más tarde', false, msgElId); return; }
 
   const name = (window.prompt('Nombre del grupo:', 'Grupo de ' + currentUser) || '').trim();
   if (!name) return;
 
-  let code = null;
   try {
+    let code = null;
     for (let attempt = 0; attempt < 8; attempt++) {
       const candidate = generateGroupCode();
       const doc = await db.collection('groups').doc(candidate).get();
       if (!doc.exists) { code = candidate; break; }
     }
-    if (!code) { groupShowMsg('No se pudo generar un código, inténtalo de nuevo', false); return; }
+    if (!code) { groupMsg('No se pudo generar un código, inténtalo de nuevo', false, msgElId); return; }
 
     await db.collection('groups').doc(code).set({
       code: code,
@@ -53,45 +77,46 @@ async function createGroup() {
       members: [currentUser],
       createdAt: Date.now()
     });
-    await setMyGroupCode(code);
-    groupShowMsg('✅ Grupo creado. ¡Comparte el código ' + code + ' con tus amigos!', true);
+    await addGroupMembership(code);
+    await setActiveGroup(code);
+    groupMsg('✅ Grupo creado. ¡Comparte el código ' + code + ' con tus amigos!', true, msgElId);
+    renderMyGroupsList();
     renderGroupPanel();
   } catch (e) {
     console.warn('Error creando grupo:', e);
-    groupShowMsg('No se pudo crear el grupo, inténtalo de nuevo', false);
+    groupMsg('No se pudo crear el grupo, inténtalo de nuevo', false, msgElId);
   }
 }
 
-async function joinGroup() {
-  const input = document.getElementById('group-join-input');
+async function joinGroup(inputElId, msgElId) {
+  const input = document.getElementById(inputElId || 'group-join-input');
   const code = (input.value || '').trim().toUpperCase();
-  if (!code) { groupShowMsg('Introduce un código', false); return; }
-  if (!firebaseReady || !db) { groupShowMsg('Sin conexión, inténtalo más tarde', false); return; }
+  if (!code) { groupMsg('Introduce un código', false, msgElId); return; }
+  if (!firebaseReady || !db) { groupMsg('Sin conexión, inténtalo más tarde', false, msgElId); return; }
 
-  const existing = getCurrentUserData().groupCode;
-  if (existing) { groupShowMsg('Ya perteneces a un grupo. Sal de él primero.', false); return; }
+  const already = getCurrentUserData && ensureUserDefaults(currentUser, UserStore.load()[currentUser]).groups.indexOf(code) !== -1;
+  if (already) { groupMsg('Ya perteneces a ese grupo', false, msgElId); return; }
 
   try {
     const ref = db.collection('groups').doc(code);
     const doc = await ref.get();
-    if (!doc.exists) { groupShowMsg('Ese código no existe', false); return; }
+    if (!doc.exists) { groupMsg('Ese código no existe', false, msgElId); return; }
 
     await ref.set({ members: firebase.firestore.FieldValue.arrayUnion(currentUser) }, { merge: true });
-    await setMyGroupCode(code);
-    groupShowMsg('✅ Te has unido a "' + doc.data().name + '"', true);
+    await addGroupMembership(code);
+    await setActiveGroup(code);
+    groupMsg('✅ Te has unido a "' + doc.data().name + '"', true, msgElId);
     input.value = '';
+    renderMyGroupsList();
     renderGroupPanel();
   } catch (e) {
     console.warn('Error uniéndose al grupo:', e);
-    groupShowMsg('No se pudo unir al grupo, inténtalo de nuevo', false);
+    groupMsg('No se pudo unir al grupo, inténtalo de nuevo', false, msgElId);
   }
 }
 
-async function leaveGroup() {
-  const data = getCurrentUserData();
-  const code = data.groupCode;
-  if (!code) return;
-  if (!window.confirm('¿Salir del grupo?')) return;
+async function leaveGroupByCode(code, msgElId) {
+  if (!window.confirm('¿Salir de este grupo? Tu cuenta y monedas de ese grupo se quedarán guardadas por si vuelves a entrar con el código.')) return;
 
   try {
     if (firebaseReady && db) {
@@ -102,17 +127,106 @@ async function leaveGroup() {
   } catch (e) {
     console.warn('Error saliendo del grupo:', e);
   }
-  await setMyGroupCode(null);
+  await removeGroupMembership(code);
+  groupMsg('Has salido del grupo', true, msgElId);
+  renderMyGroupsList();
   renderGroupPanel();
 }
 
+// ── Pantalla "Mis grupos" (desde el menú hamburguesa) ──────────────────
+async function renderMyGroupsList() {
+  const listEl = document.getElementById('mygroups-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="inventory-empty">Cargando...</div>';
+
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  const activeGroup = full.activeGroup || null;
+  const groups = full.groups || [];
+
+  const rows = [];
+
+  // Fila "modo solo"
+  rows.push(
+    '<div class="poker-table-row mygroups-row" data-code="">' +
+      '<div class="poker-table-row-main">' +
+        '<div class="poker-table-row-name">🏠 Modo solo (sin grupo)</div>' +
+        '<div class="poker-table-row-meta">Tu cuenta principal</div>' +
+      '</div>' +
+      (activeGroup === null ? '<div class="poker-table-row-players">▶ Activo</div>' : '') +
+    '</div>'
+  );
+
+  if (groups.length === 0) {
+    listEl.innerHTML = rows.join('') +
+      '<div class="inventory-empty">Aún no perteneces a ningún grupo</div>';
+  } else {
+    if (!firebaseReady || !db) {
+      groups.forEach(function (code) {
+        rows.push(
+          '<div class="poker-table-row mygroups-row" data-code="' + code + '">' +
+            '<div class="poker-table-row-main">' +
+              '<div class="poker-table-row-name">👥 ' + code + '</div>' +
+              '<div class="poker-table-row-meta">Sin conexión</div>' +
+            '</div>' +
+            (activeGroup === code ? '<div class="poker-table-row-players">▶ Activo</div>' : '') +
+          '</div>'
+        );
+      });
+      listEl.innerHTML = rows.join('');
+    } else {
+      try {
+        const docs = await Promise.all(groups.map(function (code) { return db.collection('groups').doc(code).get(); }));
+        docs.forEach(function (doc, i) {
+          const code = groups[i];
+          const name = doc.exists ? doc.data().name : '(grupo eliminado)';
+          const memberCount = doc.exists ? (doc.data().members || []).length : 0;
+          rows.push(
+            '<div class="poker-table-row mygroups-row" data-code="' + code + '">' +
+              '<div class="poker-table-row-main">' +
+                '<div class="poker-table-row-name">👥 ' + name + '</div>' +
+                '<div class="poker-table-row-meta">Código ' + code + ' · ' + memberCount + ' miembro' + (memberCount === 1 ? '' : 's') + '</div>' +
+              '</div>' +
+              (activeGroup === code ? '<div class="poker-table-row-players">▶ Activo</div>' : '<button type="button" class="mygroups-leave-btn" data-code="' + code + '" style="background:#8b0000;border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;flex-shrink:0;">Salir</button>') +
+            '</div>'
+          );
+        });
+        listEl.innerHTML = rows.join('');
+      } catch (e) {
+        console.warn('Error cargando grupos:', e);
+        listEl.innerHTML = rows.join('') + '<div class="inventory-empty">Error al cargar tus grupos</div>';
+      }
+    }
+  }
+
+  listEl.querySelectorAll('.mygroups-row').forEach(function (row) {
+    row.addEventListener('click', async function (e) {
+      if (e.target.classList.contains('mygroups-leave-btn')) return;
+      const code = row.getAttribute('data-code');
+      await setActiveGroup(code || null);
+      groupMsg(code ? '✅ Jugando ahora en este grupo' : '✅ Has vuelto a tu modo solo', true, 'mygroups-msg');
+      renderMyGroupsList();
+    });
+  });
+
+  listEl.querySelectorAll('.mygroups-leave-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      leaveGroupByCode(btn.getAttribute('data-code'), 'mygroups-msg');
+    });
+  });
+}
+
+// ── Panel de ranking de grupo, dentro de la pantalla de Ranking ───────
+// Muestra el ranking del grupo ACTUALMENTE ACTIVO (con el que se está jugando).
 async function renderGroupPanel() {
-  const data = getCurrentUserData();
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
   const noGroupEl = document.getElementById('group-no-group');
   const hasGroupEl = document.getElementById('group-has-group');
   if (!noGroupEl || !hasGroupEl) return;
 
-  if (!data.groupCode) {
+  if (!full.activeGroup) {
     noGroupEl.classList.remove('hidden');
     hasGroupEl.classList.add('hidden');
     return;
@@ -126,16 +240,15 @@ async function renderGroupPanel() {
 
   if (!firebaseReady || !db) {
     document.getElementById('group-name').textContent = '👥 Grupo';
-    document.getElementById('group-code-display').textContent = data.groupCode;
+    document.getElementById('group-code-display').textContent = full.activeGroup;
     listEl.innerHTML = '<div class="inventory-empty">Sin conexión</div>';
     return;
   }
 
   try {
-    const groupDoc = await db.collection('groups').doc(data.groupCode).get();
+    const groupDoc = await db.collection('groups').doc(full.activeGroup).get();
     if (!groupDoc.exists) {
-      // El grupo ya no existe (se pudo haber borrado); limpiamos la referencia
-      await setMyGroupCode(null);
+      await removeGroupMembership(full.activeGroup);
       renderGroupPanel();
       return;
     }
@@ -144,16 +257,16 @@ async function renderGroupPanel() {
     document.getElementById('group-code-display').textContent = group.code;
 
     const members = group.members || [];
-    const globalRows = await fetchGlobalLeaderboard();
-    let rows;
-    if (globalRows) {
-      rows = globalRows.filter(function (r) { return members.indexOf(r.username) !== -1; });
-      const known = rows.map(function (r) { return r.username; });
-      members.forEach(function (m) {
-        if (known.indexOf(m) === -1) rows.push({ username: m, value: 0, inventory: {} });
-      });
-    } else {
-      rows = members.map(function (m) { return { username: m, value: 0, inventory: {} }; });
+    const rows = [];
+    for (const m of members) {
+      const doc = await db.collection('users').doc(m).get();
+      let value = 0, inventory = {};
+      if (doc.exists) {
+        const d = doc.data();
+        const profile = d.profiles && d.profiles[full.activeGroup];
+        if (profile) { value = profile.value || computeCollectionValue(profile.inventory || {}); inventory = profile.inventory || {}; }
+      }
+      rows.push({ username: m, value: value, inventory: inventory });
     }
     rows.sort(function (a, b) { return b.value - a.value; });
 
@@ -179,8 +292,18 @@ async function renderGroupPanel() {
   }
 }
 
-// ── Toggle Global / Grupo dentro de la pantalla de ranking, y botones ──
+// ── Insignia con el nombre del perfil activo (junto al saldo) ─────────
+function updateActiveProfileBadge() {
+  const badge = document.getElementById('active-profile-badge');
+  if (!badge) return;
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  badge.textContent = full.activeGroup ? ('👥 ' + full.activeGroup) : '🏠 Solo';
+}
+
+// ── Eventos ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+  // Toggle Global / Grupo dentro del ranking
   const globalBtn = document.getElementById('ranking-toggle-global');
   const groupBtn = document.getElementById('ranking-toggle-group');
   const globalView = document.getElementById('ranking-global-view');
@@ -198,17 +321,21 @@ document.addEventListener('DOMContentLoaded', function () {
       globalBtn.classList.remove('selected');
       groupView.classList.remove('hidden');
       globalView.classList.add('hidden');
-      groupShowMsg('', true);
+      groupMsg('', true);
       renderGroupPanel();
     });
   }
 
   const createBtn = document.getElementById('group-create-btn');
-  if (createBtn) createBtn.addEventListener('click', createGroup);
+  if (createBtn) createBtn.addEventListener('click', function () { createGroup('group-msg'); });
   const joinBtn = document.getElementById('group-join-btn');
-  if (joinBtn) joinBtn.addEventListener('click', joinGroup);
+  if (joinBtn) joinBtn.addEventListener('click', function () { joinGroup('group-join-input', 'group-msg'); });
   const leaveBtn = document.getElementById('group-leave-btn');
-  if (leaveBtn) leaveBtn.addEventListener('click', leaveGroup);
+  if (leaveBtn) leaveBtn.addEventListener('click', function () {
+    const users = UserStore.load();
+    const full = ensureUserDefaults(currentUser, users[currentUser]);
+    if (full.activeGroup) leaveGroupByCode(full.activeGroup, 'group-msg');
+  });
 
   const codeDisplay = document.getElementById('group-code-display');
   if (codeDisplay) {
@@ -219,9 +346,20 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!code) return;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code).then(function () {
-          groupShowMsg('📋 Código copiado', true);
+          groupMsg('📋 Código copiado', true);
         }).catch(function () {});
       }
     });
   }
+
+  // Pantalla "Mis grupos"
+  const myGroupsCreateBtn = document.getElementById('mygroups-create-btn');
+  if (myGroupsCreateBtn) myGroupsCreateBtn.addEventListener('click', function () { createGroup('mygroups-msg'); });
+  const myGroupsJoinBtn = document.getElementById('mygroups-join-btn');
+  if (myGroupsJoinBtn) myGroupsJoinBtn.addEventListener('click', function () { joinGroup('mygroups-join-input', 'mygroups-msg'); });
+  const myGroupsBack = document.getElementById('mygroups-back');
+  if (myGroupsBack) myGroupsBack.addEventListener('click', function () {
+    hideAll();
+    appScreen.classList.remove('hidden');
+  });
 });
