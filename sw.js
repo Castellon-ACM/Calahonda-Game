@@ -8,7 +8,7 @@
 //    Todos los jugadores recibirán la nueva versión automáticamente.
 // =====================================================================
 
-const CACHE_VERSION = 'v20260820-12';
+const CACHE_VERSION = 'v20260821-1';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 
 const PRECACHE_URLS = [
@@ -21,6 +21,7 @@ const PRECACHE_URLS = [
   './js/navigation.js',
   './js/game-bottles.js',
   './js/account-ranking-auth.js',
+  './js/groups.js',
   './js/admin.js',
   './js/event.js',
   './js/support.js',
