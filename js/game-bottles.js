@@ -24,11 +24,11 @@
     const ITEM_FULL_WIDTH = 102; // 90px + 6px*2 de margen
     const SPIN_COST = 10;
     const CLAIM_AMOUNT = 200;
-    const CLAIM_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
+    const CLAIM_COOLDOWN_MS = 4 * 60 * 60 * 1000;
 
     let spinMultiplier = 1;
 
-    // --- Iconos originales por botella (SVG propio, no fotos reales) ---
+    // --- Iconos originales por botella ---
     const BOTTLE_STYLE = {
       "Jägermeister": { glass: "#0b3d1f", cap: "#111111", label: "#d9622b" },
       "Smirnoff": { glass: "#cfd8dc", cap: "#b71c1c", label: "#ffffff" },
@@ -83,10 +83,6 @@
 
     // =====================================================================
     //  CUENTAS SEPARADAS POR GRUPO
-    //  Cada jugador tiene un "perfil" independiente (monedas + colección
-    //  propias) por cada grupo al que pertenece, más un perfil "solo" para
-    //  cuando juega sin ningún grupo activo. Solo un perfil está "activo" a
-    //  la vez (data.activeGroup), y es el que se lee/guarda en cada momento.
     // =====================================================================
     function ensureProfileDefaults(profile) {
       profile = profile || {};
@@ -106,9 +102,6 @@
       if (data.activeGroup === undefined) data.activeGroup = null;
       if (!data.profiles) data.profiles = {};
 
-      // Migración: cuentas de antes de que existieran los grupos guardaban
-      // las monedas/inventario "sueltos" en el propio usuario. Los movemos
-      // a su perfil "solo" para no perder nada.
       if (data.coins !== undefined || data.inventory !== undefined) {
         if (!data.profiles.solo) {
           data.profiles.solo = ensureProfileDefaults({
@@ -130,8 +123,6 @@
 
       if (!data.profiles.solo) data.profiles.solo = ensureProfileDefaults({});
 
-      // Si el grupo activo ya no está en la lista de grupos (p.ej. saliste
-      // desde otro dispositivo), volvemos al perfil "solo".
       if (data.activeGroup && data.groups.indexOf(data.activeGroup) === -1) {
         data.activeGroup = null;
       }
@@ -142,15 +133,12 @@
       return data;
     }
 
-    // Clave del perfil actualmente activo ('solo' o el código de un grupo)
     function activeProfileKey() {
       const users = UserStore.load();
       const u = users[currentUser];
       return (u && u.activeGroup) || 'solo';
     }
 
-    // Devuelve el PERFIL activo (monedas + inventario de ese grupo/solo).
-    // Es lo que usan todos los juegos (casino, ruleta, blackjack, etc.).
     function getCurrentUserData() {
       const users = UserStore.load();
       const userData = ensureUserDefaults(currentUser, users[currentUser]);
@@ -175,8 +163,6 @@
       pushUserData(currentUser, profileData);
     }
 
-    // Devuelve true si el jugador puede reclamar.
-    // Acepta formato antiguo (string de fecha) y nuevo (timestamp ms).
     function canClaim(lastClaim) {
       if (!lastClaim) return true;
       if (typeof lastClaim === 'string') return true;
@@ -213,6 +199,22 @@
       return pool[Math.floor(Math.random() * pool.length)];
     }
 
+    // =====================================================================
+    //  ÁLBUM DE COLECCIÓN
+    //  Reemplaza el antiguo grid de inventario. Muestra TODAS las botellas
+    //  del juego agrupadas por rareza; las no conseguidas aparecen bloqueadas
+    //  (silueta oscura). Las conseguidas muestran nivel, barra de progreso
+    //  y cantidad. Al tocarlas abre el detalle 3D igual que antes.
+    // =====================================================================
+
+    // Rarezas en orden de presentación
+    const RARITY_SECTIONS = [
+      { key: 'legendary', label: '⭐ Legendarias', emoji: '⭐' },
+      { key: 'epic',      label: '💜 Épicas',      emoji: '💜' },
+      { key: 'rare',      label: '🔵 Raras',        emoji: '🔵' },
+      { key: 'common',    label: '⚪ Comunes',      emoji: '⚪' }
+    ];
+
     const INVENTORY_RETURN_MAP = {
       'inventory-grid': 'app',
       'account-inventory-grid': 'account',
@@ -220,22 +222,94 @@
     };
 
     function renderInventory(inventory, gridId) {
-      const grid = document.getElementById(gridId || 'inventory-grid');
+      const container = document.getElementById(gridId || 'inventory-grid');
+      if (!container) return;
       const returnTo = INVENTORY_RETURN_MAP[gridId || 'inventory-grid'] || 'app';
-      const names = Object.keys(inventory || {});
-      if (names.length === 0) {
-        grid.innerHTML = '<div class="inventory-empty">Aún no tienes botellas. ¡Gira la ruleta!</div>';
+
+      // Perfiles visitados siguen usando el grid simple (no álbum)
+      if (gridId === 'visitor-inventory-grid' || gridId === 'account-inventory-grid') {
+        renderInventorySimple(inventory, container, returnTo);
         return;
       }
 
-      // Ordenar de menor a mayor rareza (común -> rara -> épica -> legendaria)
+      container.innerHTML = '';
+
+      // Barra de progreso global
+      const total = REWARDS.length;
+      const unlocked = REWARDS.filter(function (r) { return (inventory[r.name] || 0) > 0; }).length;
+      const pct = Math.round((unlocked / total) * 100);
+
+      const progressWrap = document.createElement('div');
+      progressWrap.innerHTML =
+        '<div class="album-progress-bar-wrap">' +
+          '<div class="album-progress-bar-fill" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="album-progress-label">' + unlocked + ' / ' + total + ' botellas (' + pct + '%)</div>';
+      container.appendChild(progressWrap);
+
+      // Sección por rareza
+      RARITY_SECTIONS.forEach(function (section) {
+        const bottles = REWARDS.filter(function (r) { return r.rarity === section.key; });
+        const unlockedInSection = bottles.filter(function (r) { return (inventory[r.name] || 0) > 0; }).length;
+
+        // Cabecera de sección
+        const header = document.createElement('div');
+        header.className = 'album-rarity-header rh-' + section.key;
+        header.innerHTML =
+          '<span class="album-rarity-label">' + section.label + '</span>' +
+          '<div class="album-rarity-line"></div>' +
+          '<span class="album-rarity-count">' + unlockedInSection + '/' + bottles.length + '</span>';
+        container.appendChild(header);
+
+        // Grid de cartas
+        const grid = document.createElement('div');
+        grid.className = 'album-grid';
+
+        bottles.forEach(function (reward) {
+          const count = inventory[reward.name] || 0;
+          const hasIt = count > 0;
+          const prog = hasIt ? levelProgress(count) : null;
+
+          const card = document.createElement('div');
+          card.className = 'album-card' + (hasIt ? ' rarity-' + reward.rarity : ' album-locked');
+
+          const bottleHtml =
+            '<div class="album-bottle">' + bottleIconMarkup(reward.name) + '</div>' +
+            '<div class="album-name">' + reward.name + '</div>';
+
+          if (hasIt) {
+            card.innerHTML =
+              bottleHtml +
+              '<div class="album-level-badge">Nv.' + prog.level + '</div>' +
+              '<div class="album-bar-wrap"><div class="album-bar-fill" style="width:' + prog.pct + '%"></div></div>' +
+              '<div class="album-count">x' + count + '</div>';
+            card.addEventListener('click', function () { showBottleDetail(reward.name, returnTo); });
+          } else {
+            card.innerHTML =
+              bottleHtml +
+              '<div class="album-count" style="color:#333">?</div>';
+          }
+
+          grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
+      });
+    }
+
+    // Grid simple (2-3 col) para perfiles visitados y cuenta — sin cambios
+    function renderInventorySimple(inventory, grid, returnTo) {
+      const names = Object.keys(inventory || {});
+      if (names.length === 0) {
+        grid.innerHTML = '<div class="inventory-empty">Colección vacía</div>';
+        return;
+      }
       names.sort(function (a, b) {
         const ra = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === a; }) || {}).rarity || 'common'];
         const rb = RARITY_ORDER[(REWARDS.find(function (r) { return r.name === b; }) || {}).rarity || 'common'];
-        if (ra !== rb) return ra - rb;
+        if (ra !== rb) return rb - ra;
         return a.localeCompare(b);
       });
-
       grid.innerHTML = '';
       names.forEach(function (name) {
         const rarity = (REWARDS.find(function (r) { return r.name === name; }) || {}).rarity || 'common';
@@ -299,8 +373,6 @@
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
-      // El ranking GLOBAL siempre refleja el perfil "solo" (fuera de grupos),
-      // nunca el de un grupo concreto — para eso está el ranking de grupo.
       if (activeProfileKey() === 'solo') {
         pushToLeaderboard(currentUser, data.inventory);
       }
@@ -311,13 +383,9 @@
       document.getElementById('spin-result').textContent = '';
       buildIdleReel();
       renderCosmeticsGame();
-      // Comprobar si el admin ha enviado monedas mientras el jugador estaba fuera
       checkAdminGift(currentUser);
-      // Comprobar si hay un evento especial activo para este jugador
       checkEventTabVisibility();
-      // Comprobar avisos pendientes (monedas dadas/quitadas, notificaciones del admin...)
       checkUserNotifications(currentUser);
-      // Actualizar el contador de novedades sin leer
       updateNewsBadge();
       if (typeof updateActiveProfileBadge === 'function') updateActiveProfileBadge();
     }
@@ -367,11 +435,9 @@
       document.getElementById('spin-result').textContent = '';
       spinBtn.disabled = true;
 
-      // Generar todos los premios de esta tirada (x1, x3, x5 o x10)
       const rewards = [];
       for (let i = 0; i < spinMultiplier; i++) rewards.push(pickWeightedReward());
 
-      // El de mayor rareza es el que se anima/destaca como resultado principal
       let best = rewards[0];
       rewards.forEach(function (r) {
         if (RARITY_ORDER[r.rarity] > RARITY_ORDER[best.rarity]) best = r;
@@ -411,7 +477,6 @@
           pushToLeaderboard(currentUser, fresh.inventory);
         }
 
-        // Resultado principal: la de mayor rareza. Debajo: el resto de lo que ha salido.
         const others = rewards.slice();
         const bestIdx = others.indexOf(best);
         if (bestIdx !== -1) others.splice(bestIdx, 1);
@@ -444,5 +509,3 @@
       hideAll();
       accountScreen.classList.remove('hidden');
     }
-
-    // =====================================================================
