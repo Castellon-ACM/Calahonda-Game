@@ -101,7 +101,6 @@
 
     // ── Paleta de colores por botella ─────────────────────────────────
     const BOTTLE_STYLE = {
-      // Comunes
       "Jägermeister":    { glass: "#0b3d1f", cap: "#111111", label: "#d9622b" },
       "Smirnoff":        { glass: "#cfd8dc", cap: "#b71c1c", label: "#ffffff" },
       "Baileys":         { glass: "#5b3a1a", cap: "#3a2410", label: "#f0e4c8" },
@@ -132,7 +131,6 @@
       "Sprite":          { glass: "#d0f0c0", cap: "#006030", label: "#006030" },
       "Campari":         { glass: "#c8102e", cap: "#111111", label: "#ffffff" },
       "Midori":          { glass: "#2a7a10", cap: "#111111", label: "#f4f0e0" },
-      // Raras
       "Ballantine's":    { glass: "#8a5a1e", cap: "#123a24", label: "#dfe6c8" },
       "Jack Daniel's":   { glass: "#3a2a12", cap: "#111111", label: "#0d0d0d" },
       "Johnnie Walker":  { glass: "#8a5a1e", cap: "#d4af37", label: "#1a1a1a" },
@@ -155,7 +153,6 @@
       "Glenfiddich 12":  { glass: "#3a6a3a", cap: "#c8a010", label: "#f4f0e0" },
       "Jameson":         { glass: "#2a4a1a", cap: "#c8a010", label: "#f4f0e0" },
       "Bulleit Bourbon": { glass: "#8b4513", cap: "#111111", label: "#f4f0e0" },
-      // Épicas
       "Hennessy":        { glass: "#4a2c10", cap: "#caa24a", label: "#caa24a" },
       "Moët & Chandon":  { glass: "#123a24", cap: "#d4af37", label: "#f4f0e0" },
       "Black Label":     { glass: "#1a1a1a", cap: "#d4af37", label: "#1a1a1a" },
@@ -173,7 +170,6 @@
       "Glenlivet 18":    { glass: "#2a4a6a", cap: "#c8a010", label: "#f4d98a" },
       "Ardbeg 10":       { glass: "#1a2a1a", cap: "#111111", label: "#c8a010" },
       "Laphroaig 10":    { glass: "#1a1a2a", cap: "#111111", label: "#c8a010" },
-      // Legendarias
       "Dom Pérignon":    { glass: "#caa24a", cap: "#d4af37", label: "#f4f0e0" },
       "Macallan 18":     { glass: "#6b3a10", cap: "#2a1a0a", label: "#caa24a" },
       "Louis XIII":      { glass: "#e0c060", cap: "#caa24a", label: "#7c5a10", round: true },
@@ -205,7 +201,6 @@
         '</svg>';
     }
 
-    // ── Niveles ───────────────────────────────────────────────────────
     function levelForCount(count) {
       if (!count || count <= 0) return 0;
       return Math.floor(Math.log2(count)) + 1;
@@ -358,16 +353,34 @@
       const unlocked = REWARDS.filter(function (r) { return (inventory[r.name] || 0) > 0; }).length;
       const pct      = Math.round((unlocked / total) * 100);
 
+      // Calcular puntos totales de la colección
+      const points = typeof computeCollectionValue === 'function'
+        ? computeCollectionValue(inventory)
+        : 0;
+
+      // Cabecera con puntos + barra de progreso
       const progressWrap = document.createElement('div');
       progressWrap.innerHTML =
+        // Puntos destacados
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+          '<div>' +
+            '<div style="color:#b8a679;font-size:11px;margin-bottom:2px">Puntos de colección</div>' +
+            '<div style="color:#f4d98a;font-size:24px;font-weight:800;line-height:1">' + points.toLocaleString() + ' <span style="font-size:14px">⭐</span></div>' +
+          '</div>' +
+          '<div style="text-align:right">' +
+            '<div style="color:#b8a679;font-size:11px;margin-bottom:2px">Completado</div>' +
+            '<div style="color:#fff;font-size:18px;font-weight:800;line-height:1">' + pct + '%</div>' +
+            '<div style="color:#6b5f45;font-size:10px">' + unlocked + ' / ' + total + '</div>' +
+          '</div>' +
+        '</div>' +
+        // Barra de progreso
         '<div class="album-progress-bar-wrap">' +
           '<div class="album-progress-bar-fill" style="width:' + pct + '%"></div>' +
-        '</div>' +
-        '<div class="album-progress-label">' + unlocked + ' / ' + total + ' botellas (' + pct + '%)</div>';
+        '</div>';
       container.appendChild(progressWrap);
 
       RARITY_SECTIONS.forEach(function (section) {
-        const bottles          = REWARDS.filter(function (r) { return r.rarity === section.key; });
+        const bottles           = REWARDS.filter(function (r) { return r.rarity === section.key; });
         const unlockedInSection = bottles.filter(function (r) { return (inventory[r.name] || 0) > 0; }).length;
 
         const header = document.createElement('div');
@@ -551,9 +564,9 @@
         if (RARITY_ORDER[r.rarity] > RARITY_ORDER[best.rarity]) best = r;
       });
 
-      const track      = document.getElementById('roulette-track');
-      const wrap       = track.parentElement;
-      const totalItems = 46;
+      const track       = document.getElementById('roulette-track');
+      const wrap        = track.parentElement;
+      const totalItems  = 46;
       const winnerIndex = 40;
 
       track.style.transition = 'none';
@@ -577,7 +590,7 @@
         renderInventory(fresh.inventory);
         if (activeProfileKey() === 'solo') pushToLeaderboard(currentUser, fresh.inventory);
 
-        const others = rewards.slice();
+        const others  = rewards.slice();
         const bestIdx = others.indexOf(best);
         if (bestIdx !== -1) others.splice(bestIdx, 1);
 
