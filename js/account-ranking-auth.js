@@ -1,9 +1,12 @@
 // Ranking + cuenta + login/registro
     //  Ranking de jugadores + visita de perfiles ajenos
     // =====================================================================
-    const RARITY_VALUE = { common: 1, rare: 5, epic: 20, legendary: 100 };
+    // mythic: 500 puntos — solo la botella Alcohol 96% (subasta exclusiva)
+    const RARITY_VALUE = { common: 1, rare: 5, epic: 20, legendary: 100, mythic: 500 };
 
     function rarityOf(name) {
+      // La botella mítica no está en REWARDS (es exclusiva de subasta), la detectamos por nombre
+      if (name === 'Alcohol 96%') return 'mythic';
       const r = REWARDS.find(function (r) { return r.name === name; });
       return r ? r.rarity : 'common';
     }
@@ -38,7 +41,7 @@
         }).sort(function (a, b) { return b.value - a.value; });
       }
 
-      window._rankingRows = rows; // guardar para filtrado
+      window._rankingRows = rows;
       renderRankingRows(rows);
 
       if (searchInput) {
@@ -87,7 +90,6 @@
       document.getElementById('avatar-btn-visitor').textContent = initial(username);
       const stealResultEl = document.getElementById('steal-result');
       if (stealResultEl) stealResultEl.textContent = '';
-      // Limpiar posible regalo anterior
       const prevGift = document.querySelector('#visitor-screen .gift-section');
       if (prevGift) prevGift.remove();
       renderVisitorInventoryWithSteal(username, data.inventory);
@@ -95,7 +97,6 @@
       document.getElementById('visitor-screen').classList.remove('hidden');
     }
 
-    // El botón "Ver ranking" de la pantalla de cuenta sigue funcionando
     document.getElementById('view-ranking-btn').addEventListener('click', function () {
       hideAll();
       renderRanking();
@@ -105,11 +106,9 @@
     document.getElementById('ranking-back').addEventListener('click', function () {
       hideAll();
       appScreen.classList.remove('hidden');
-      // Restaurar tab activo
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
       document.getElementById('tab-home').classList.remove('hidden');
-      // Resetear multiplicador y redibujar el botón para evitar NaN
       spinMultiplier = 1;
       document.querySelectorAll('.spin-mult-btn').forEach(function (b) { b.classList.remove('selected'); });
       const multX1 = document.querySelector('.spin-mult-btn[data-mult="1"]');
@@ -128,7 +127,6 @@
     document.getElementById('account-back').addEventListener('click', function () {
       hideAll();
       appScreen.classList.remove('hidden');
-      // Resetear multiplicador también al volver desde cuenta
       spinMultiplier = 1;
       document.querySelectorAll('.spin-mult-btn').forEach(function (b) { b.classList.remove('selected'); });
       const multX1 = document.querySelector('.spin-mult-btn[data-mult="1"]');
@@ -170,8 +168,6 @@
       const existing = ensureUserDefaults(currentUser, users[currentUser] || {});
       const newPasswordHash = newPass ? await sha256Hex(newPass) : existing.passwordHash;
 
-      // Conservamos TODO lo demás (perfiles de todos los grupos, grupos a los
-      // que pertenece, grupo activo...) y solo cambiamos email/contraseña.
       const updated = Object.assign({}, existing, {
         email: newEmail,
         passwordHash: newPasswordHash,
@@ -235,18 +231,14 @@
       const users = UserStore.load();
       let localUser = users[user];
 
-      // Si este dispositivo no conoce al usuario (o su cuenta local es de antes de
-      // esta actualización y no tiene passwordHash), preguntamos al servidor.
       if (!localUser || !localUser.passwordHash) {
         const remote = await fetchRemoteUser(user);
-
         if (remote && remote.passwordHash) {
           if (remote.passwordHash !== passwordHash) {
             errorMsg.textContent = 'Contraseña incorrecta';
             errorMsg.style.display = 'block';
             return;
           }
-          // Traemos la cuenta completa (todos los grupos y sus perfiles) desde el servidor.
           localUser = ensureUserDefaults(user, {
             email: remote.email || (localUser && localUser.email) || '',
             passwordHash: remote.passwordHash,
@@ -263,11 +255,8 @@
           errorMsg.style.display = 'block';
           return;
         }
-        // Si localUser existe pero aún no tiene passwordHash (cuenta antigua en ESTE
-        // mismo dispositivo, ver comprobación de compatibilidad más abajo).
       }
 
-      // Compatibilidad con cuentas antiguas que aún guardan la contraseña en texto plano
       const validPassword = localUser.passwordHash
         ? localUser.passwordHash === passwordHash
         : localUser.password === pass;
@@ -278,10 +267,6 @@
         return;
       }
 
-      // Migración: si la cuenta aún no tenía hash (contraseña antigua en texto plano),
-      // lo generamos ahora para que ya se pueda entrar desde cualquier otro dispositivo
-      // a partir de este momento (se sube al servidor más abajo, DESPUÉS de bajar los
-      // datos reales, para no pisar nada।
       if (!localUser.passwordHash) {
         localUser.passwordHash = passwordHash;
         delete localUser.password;
@@ -289,11 +274,6 @@
         UserStore.save(users);
       }
 
-      // IMPORTANTE: primero bajamos los datos reales del servidor (monedas/inventario
-      // que el admin pueda haber cambiado mientras este dispositivo no estaba conectado)
-      // y SOLO DESPUÉS subimos algo (p. ej. el hash de contraseña migrado arriba).
-      // Si esto se hiciera al revés, un cambio del admin (como dar monedas) se podría
-      // pisar con los datos viejos que este dispositivo tenía guardados localmente.
       errorMsg.style.display = 'none';
       await pullUserData(user);
       const refreshedUsers = UserStore.load();
@@ -326,8 +306,6 @@
         return;
       }
 
-      // Comprobar también en el servidor, por si ese usuario ya existe
-      // registrado desde otro dispositivo.
       const remoteExisting = await fetchRemoteUser(user);
       if (remoteExisting) {
         errorMsg.textContent = 'Ese usuario ya existe, inicia sesión';
