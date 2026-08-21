@@ -109,6 +109,12 @@
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
       document.getElementById('tab-home').classList.remove('hidden');
+      // Resetear multiplicador y redibujar el botón para evitar NaN
+      spinMultiplier = 1;
+      document.querySelectorAll('.spin-mult-btn').forEach(function (b) { b.classList.remove('selected'); });
+      const multX1 = document.querySelector('.spin-mult-btn[data-mult="1"]');
+      if (multX1) multX1.classList.add('selected');
+      if (typeof updateSpinButtonLabel === 'function') updateSpinButtonLabel();
     });
 
     document.getElementById('visitor-back').addEventListener('click', function () {
@@ -122,6 +128,12 @@
     document.getElementById('account-back').addEventListener('click', function () {
       hideAll();
       appScreen.classList.remove('hidden');
+      // Resetear multiplicador también al volver desde cuenta
+      spinMultiplier = 1;
+      document.querySelectorAll('.spin-mult-btn').forEach(function (b) { b.classList.remove('selected'); });
+      const multX1 = document.querySelector('.spin-mult-btn[data-mult="1"]');
+      if (multX1) multX1.classList.add('selected');
+      if (typeof updateSpinButtonLabel === 'function') updateSpinButtonLabel();
     });
 
     document.getElementById('account-logout').addEventListener('click', function () {
