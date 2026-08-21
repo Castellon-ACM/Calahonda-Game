@@ -1,14 +1,8 @@
 // =====================================================================
 //  SERVICE WORKER — Alcohol 365
-//  Cachea la app para funcionamiento offline y fuerza recarga
-//  automática cuando hay una versión nueva en GitHub.
-//
-//  ► INSTRUCCIONES: cada vez que hagas un commit con cambios,
-//    cambia el número de CACHE_VERSION (ej: -2, -3, -4...).
-//    Todos los jugadores recibirán la nueva versión automáticamente.
 // =====================================================================
 
-const CACHE_VERSION = 'v20260821-4';
+const CACHE_VERSION = 'v20260821-5';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 
 const PRECACHE_URLS = [
