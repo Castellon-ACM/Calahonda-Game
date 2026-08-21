@@ -1,0 +1,161 @@
+  /* ---------- ÁLBUM DE COLECCIÓN ---------- */
+  .album-section { margin-bottom: 20px; }
+  .album-rarity-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    margin-top: 16px;
+  }
+  .album-rarity-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+  .album-rarity-line {
+    flex: 1;
+    height: 1px;
+    opacity: 0.3;
+  }
+  .album-rarity-count {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.7;
+  }
+  .album-rarity-header.rh-common .album-rarity-label { color: #aaa; }
+  .album-rarity-header.rh-common .album-rarity-line { background: #aaa; }
+  .album-rarity-header.rh-common .album-rarity-count { color: #aaa; }
+  .album-rarity-header.rh-rare .album-rarity-label { color: #3d84e0; }
+  .album-rarity-header.rh-rare .album-rarity-line { background: #3d84e0; }
+  .album-rarity-header.rh-rare .album-rarity-count { color: #3d84e0; }
+  .album-rarity-header.rh-epic .album-rarity-label { color: #c37bf0; }
+  .album-rarity-header.rh-epic .album-rarity-line { background: #c37bf0; }
+  .album-rarity-header.rh-epic .album-rarity-count { color: #c37bf0; }
+  .album-rarity-header.rh-legendary .album-rarity-label { color: #f4d98a; }
+  .album-rarity-header.rh-legendary .album-rarity-line { background: #f4d98a; }
+  .album-rarity-header.rh-legendary .album-rarity-count { color: #f4d98a; }
+
+  .album-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .album-card {
+    border-radius: 12px;
+    padding: 8px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.12s ease;
+  }
+  .album-card:active { transform: scale(0.94); }
+
+  /* Carta bloqueada (no conseguida aún) */
+  .album-card.album-locked {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    opacity: 0.45;
+    cursor: default;
+  }
+  .album-card.album-locked:active { transform: none; }
+  .album-card.album-locked .album-bottle { filter: brightness(0.15); }
+
+  /* Carta desbloqueada */
+  .album-card.rarity-common  { background: #1c1c1c; border: 1px solid #4d4d4d; }
+  .album-card.rarity-rare    { background: #0c2040; border: 1px solid #3d84e0; }
+  .album-card.rarity-epic    { background: #25093d; border: 1px solid #a24ff0; }
+  .album-card.rarity-legendary {
+    background: linear-gradient(160deg, #3a2503, #6b4a0a);
+    border: 1px solid #d4a017;
+    box-shadow: 0 0 8px rgba(212,160,23,0.35);
+  }
+
+  .album-bottle { width: 28px; height: 44px; margin: 0 auto 4px; }
+  .album-name {
+    font-size: 8px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+    word-break: break-word;
+    min-height: 18px;
+  }
+  .album-locked .album-name { color: #555; }
+
+  /* Nivel — chip dorado */
+  .album-level-badge {
+    margin-top: 4px;
+    background: linear-gradient(135deg, #f4d98a, #d4a017);
+    color: #241a05;
+    font-size: 8px;
+    font-weight: 800;
+    border-radius: 6px;
+    padding: 1px 5px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Barra de progreso mini */
+  .album-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+  .album-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .rarity-common  .album-bar-fill { background: #aaa; }
+  .rarity-rare    .album-bar-fill { background: #3d84e0; }
+  .rarity-epic    .album-bar-fill { background: #a24ff0; }
+  .rarity-legendary .album-bar-fill { background: linear-gradient(90deg, #d4a017, #f4d98a); }
+
+  /* Contador de copias */
+  .album-count {
+    font-size: 8px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 2px;
+  }
+
+  /* Destello "nuevo" */
+  .album-card.album-new::after {
+    content: '¡NEW!';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #e03d3d;
+    color: #fff;
+    font-size: 6px;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 1px 3px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Progreso global del álbum */
+  .album-progress-bar-wrap {
+    width: 100%;
+    height: 8px;
+    background: #1a1505;
+    border-radius: 4px;
+    margin: 6px 0 4px;
+    overflow: hidden;
+    border: 1px solid #3a2c14;
+  }
+  .album-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4a017, #f4d98a);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .album-progress-label {
+    font-size: 11px;
+    color: #b8a679;
+    text-align: right;
+    margin-bottom: 14px;
+  }
