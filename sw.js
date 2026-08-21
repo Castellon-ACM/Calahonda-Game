@@ -1,6 +1,5 @@
-const CACHE_VERSION = 'v20260821-7';
+const CACHE_VERSION = 'v20260821-8';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
-
 const PRECACHE_URLS = [
   './', './index.html', './manifest.json',
   './css/style.css', './css/album.css',
@@ -14,50 +13,31 @@ const PRECACHE_URLS = [
   './js/auction.js', './js/coin3d.js', './js/bottle3d.js', './js/skins.js',
   './assets/icon-192.png', './assets/icon-512.png'
 ];
-
-self.addEventListener('install', function (event) {
+self.addEventListener('install', function (e) {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(PRECACHE_URLS).catch(function (err) {
-        console.warn('[SW] Error precacheando:', err);
-      });
-    })
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then(function (c) { return c.addAll(PRECACHE_URLS).catch(function(){}); }));
 });
-
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
+self.addEventListener('activate', function (e) {
+  e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(
-        keys.filter(function (key) { return key !== CACHE_NAME; })
-            .map(function (key) { return caches.delete(key); })
-      );
+      return Promise.all(keys.filter(function (k) { return k !== CACHE_NAME; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
       .then(function () {
-        return self.clients.matchAll({ type: 'window' }).then(function (clients) {
-          clients.forEach(function (client) {
-            client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
-          });
+        return self.clients.matchAll({ type: 'window' }).then(function (cs) {
+          cs.forEach(function (c) { c.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }); });
         });
       })
   );
 });
-
-self.addEventListener('fetch', function (event) {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', function (e) {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
-  event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      const fetched = fetch(event.request).then(function (response) {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
-        }
-        return response;
-      }).catch(function () { return cached; });
-      return cached || fetched;
-    })
-  );
+  e.respondWith(caches.match(e.request).then(function (cached) {
+    const fetched = fetch(e.request).then(function (r) {
+      if (r && r.status === 200) { const cl = r.clone(); caches.open(CACHE_NAME).then(function (c) { c.put(e.request, cl); }); }
+      return r;
+    }).catch(function () { return cached; });
+    return cached || fetched;
+  }));
 });
