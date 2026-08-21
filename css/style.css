@@ -1268,3 +1268,70 @@
     50% { transform: scaleX(1); }
     75% { transform: scaleX(0.15); }
   }
+
+  /* ---------- Menú hamburguesa lateral ---------- */
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: #f4d98a;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  #side-menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9998;
+  }
+  #side-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 78%;
+    max-width: 290px;
+    background: #161116;
+    border-right: 1px solid #3a2c14;
+    z-index: 9999;
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 18px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+  }
+  #side-menu.open { transform: translateX(0); }
+  .side-menu-item {
+    background: none;
+    border: none;
+    text-align: left;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .side-menu-item:active { background: #2a2210; }
+  .side-menu-item .news-badge {
+    position: static;
+    margin-left: 8px;
+  }
+  .side-menu-divider {
+    border-top: 1px solid #3a2c14;
+    margin: 10px 0;
+  }
