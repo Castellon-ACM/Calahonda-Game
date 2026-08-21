@@ -90,6 +90,7 @@ async function pushUserData(username, data) {
     };
     if (data.passwordHash) payload.passwordHash = data.passwordHash;
     if (data.ownedSkins) payload.ownedSkins = data.ownedSkins;
+    payload.groupCode = data.groupCode || null;
     await db.collection('users').doc(username).set(payload, { merge: true });
     _markPendingSync(username, false);
     return true;
@@ -172,6 +173,12 @@ async function pullUserData(username) {
     if (remote.passwordHash && remote.passwordHash !== users[username].passwordHash) {
       users[username].passwordHash = remote.passwordHash;
       delete users[username].password;
+    }
+
+    // ── Grupo: sincronizar siempre desde el servidor (así, si te unes o
+    // sales de un grupo desde otro dispositivo, aquí también se refleja) ──
+    if (remote.groupCode !== undefined && remote.groupCode !== users[username].groupCode) {
+      users[username].groupCode = remote.groupCode;
     }
 
     // ── Monedas: tomar el valor de Firestore, SALVO que este dispositivo
