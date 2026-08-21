@@ -1325,20 +1325,26 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-  }
-  /* anular el padding extra que hereda de .tabbar-btn */
-  .side-menu-item.tabbar-btn {
+    /* Clave: evitar que hereden flex:1 de .tabbar-btn y se estiren */
+    flex: none;
     flex-direction: row;
+  }
+  /* Anular propiedades de .tabbar-btn que rompen el layout dentro del menú */
+  #side-menu .tabbar-btn {
+    flex: none;
+    flex-direction: row;
+    align-items: center;
     gap: 0;
     padding: 10px 8px;
     font-size: 15px;
     color: #fff;
+    justify-content: flex-start;
   }
-  .side-menu-item.tabbar-btn .tabbar-icon { display: none; }
+  #side-menu .tabbar-btn .tabbar-icon { display: none; }
   .side-menu-item:active { background: #2a2210; }
   .side-menu-item .news-badge {
     position: static;
-    margin-left: 8px;
+    margin-left: auto;
   }
   .side-menu-divider {
     border-top: 1px solid #3a2c14;
