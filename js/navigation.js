@@ -21,6 +21,7 @@
       document.getElementById('visitor-screen').classList.add('hidden');
       document.getElementById('bottle-detail-screen').classList.add('hidden');
       document.getElementById('news-screen').classList.add('hidden');
+      document.getElementById('support-screen').classList.add('hidden');
       const groupsScreen = document.getElementById('groups-screen');
       if (groupsScreen) groupsScreen.classList.add('hidden');
       closeSideMenu();
@@ -35,7 +36,6 @@
       hideAll();
       appScreen.classList.remove('hidden');
 
-      // Volver siempre a la pestaña "Inicio" al entrar
       document.querySelectorAll('.tabbar-btn').forEach(function (b) { b.classList.remove('active'); });
       document.getElementById('tabbtn-home').classList.add('active');
       ['tab-video','tab-home','tab-casino','tab-event','tab-support','tab-chat'].forEach(function (id) {
@@ -58,16 +58,12 @@
         checkAdminGift(currentUser);
         checkEventTabVisibility();
         checkUserNotifications(currentUser);
-        // Sincronizar monedas desde Firestore para que los cambios del admin
-        // (dar/quitar monedas) lleguen sin necesidad de cerrar sesión.
         if (typeof syncCoinsFromFirestore === 'function') {
           syncCoinsFromFirestore(currentUser);
         }
       }, 20000);
     }
 
-    // Sincronizar monedas también cuando el usuario vuelve a la pestaña del navegador
-    // (por ejemplo, tras haber estado en otra app o pestaña mientras el admin actuaba).
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible' && currentUser) {
         if (typeof syncCoinsFromFirestore === 'function') {
@@ -76,15 +72,14 @@
       }
     });
 
-    // --- Tabbar (incluye los elementos del menú hamburguesa con la misma clase) ---
+    // --- Tabbar ---
     document.querySelectorAll('.tabbar-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         const tab = this.getAttribute('data-tab');
-        if (!tab) return; // botones del menú sin data-tab (Mis grupos, Novedades...) los gestiona otro archivo
+        if (!tab) return;
 
         closeSideMenu();
 
-        // El ranking no es un tab inline: abre su pantalla
         if (tab === 'ranking') {
           hideAll();
           renderRanking();
@@ -102,7 +97,7 @@
 
         if (tab === 'casino')  renderCasino();
         if (tab === 'event')   renderEventTab();
-        if (tab === 'support') renderSupportTab();
+        if (tab === 'support') renderInventory(getCurrentUserData().inventory);
         if (tab === 'chat')    renderChatTab();
       });
     });
@@ -113,7 +108,7 @@
       if (casinoBal) casinoBal.textContent = coins;
     }
 
-    // --- Menú hamburguesa (lateral) ---
+    // --- Menú hamburguesa ---
     function openSideMenu() {
       const overlay = document.getElementById('side-menu-overlay');
       const menu = document.getElementById('side-menu');
@@ -136,11 +131,11 @@
       if (hamburgerBtn) hamburgerBtn.addEventListener('click', openSideMenu);
       if (overlay) overlay.addEventListener('click', closeSideMenu);
 
-      // Cualquier botón del menú (incluido el avatar) cierra el menú al pulsarlo
       document.querySelectorAll('#side-menu button, #side-menu .avatar-btn').forEach(function (el) {
         el.addEventListener('click', closeSideMenu);
       });
 
+      // Mis grupos
       const sidemenuMyGroups = document.getElementById('sidemenu-mygroups');
       if (sidemenuMyGroups) {
         sidemenuMyGroups.addEventListener('click', function () {
@@ -150,6 +145,17 @@
         });
       }
 
+      // Apoyo (ahora abre pantalla propia)
+      const sidemenuSupport = document.getElementById('sidemenu-support');
+      if (sidemenuSupport) {
+        sidemenuSupport.addEventListener('click', function () {
+          hideAll();
+          document.getElementById('support-screen').classList.remove('hidden');
+          if (typeof renderSupportTab === 'function') renderSupportTab();
+        });
+      }
+
+      // Cerrar sesión
       const sidemenuLogout = document.getElementById('sidemenu-logout');
       if (sidemenuLogout) {
         sidemenuLogout.addEventListener('click', function () {
@@ -159,6 +165,15 @@
           document.getElementById('login-pass').value = '';
           hideAll();
           loginScreen.classList.remove('hidden');
+        });
+      }
+
+      // Back de la pantalla de apoyo
+      const supportBack = document.getElementById('support-back');
+      if (supportBack) {
+        supportBack.addEventListener('click', function () {
+          hideAll();
+          appScreen.classList.remove('hidden');
         });
       }
     });
