@@ -1,5 +1,4 @@
 // Navegación entre pantallas
-    //  Navegación entre pantallas
     // =====================================================================
     const loginScreen    = document.getElementById('login-screen');
     const registerScreen = document.getElementById('register-screen');
@@ -22,8 +21,10 @@
       document.getElementById('bottle-detail-screen').classList.add('hidden');
       document.getElementById('news-screen').classList.add('hidden');
       document.getElementById('support-screen').classList.add('hidden');
+      document.getElementById('auction-screen').classList.add('hidden');
       const groupsScreen = document.getElementById('groups-screen');
       if (groupsScreen) groupsScreen.classList.add('hidden');
+      stopAuctionTimer();
       closeSideMenu();
     }
 
@@ -58,17 +59,13 @@
         checkAdminGift(currentUser);
         checkEventTabVisibility();
         checkUserNotifications(currentUser);
-        if (typeof syncCoinsFromFirestore === 'function') {
-          syncCoinsFromFirestore(currentUser);
-        }
+        if (typeof syncCoinsFromFirestore === 'function') syncCoinsFromFirestore(currentUser);
       }, 20000);
     }
 
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible' && currentUser) {
-        if (typeof syncCoinsFromFirestore === 'function') {
-          syncCoinsFromFirestore(currentUser);
-        }
+        if (typeof syncCoinsFromFirestore === 'function') syncCoinsFromFirestore(currentUser);
       }
     });
 
@@ -111,7 +108,7 @@
     // --- Menú hamburguesa ---
     function openSideMenu() {
       const overlay = document.getElementById('side-menu-overlay');
-      const menu = document.getElementById('side-menu');
+      const menu    = document.getElementById('side-menu');
       if (!overlay || !menu) return;
       overlay.classList.remove('hidden');
       menu.classList.add('open');
@@ -119,7 +116,7 @@
 
     function closeSideMenu() {
       const overlay = document.getElementById('side-menu-overlay');
-      const menu = document.getElementById('side-menu');
+      const menu    = document.getElementById('side-menu');
       if (!overlay || !menu) return;
       overlay.classList.add('hidden');
       menu.classList.remove('open');
@@ -127,9 +124,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       const hamburgerBtn = document.getElementById('hamburger-btn');
-      const overlay = document.getElementById('side-menu-overlay');
+      const overlay      = document.getElementById('side-menu-overlay');
       if (hamburgerBtn) hamburgerBtn.addEventListener('click', openSideMenu);
-      if (overlay) overlay.addEventListener('click', closeSideMenu);
+      if (overlay)      overlay.addEventListener('click', closeSideMenu);
 
       document.querySelectorAll('#side-menu button, #side-menu .avatar-btn').forEach(function (el) {
         el.addEventListener('click', closeSideMenu);
@@ -145,13 +142,23 @@
         });
       }
 
-      // Apoyo (ahora abre pantalla propia)
+      // Apoyo
       const sidemenuSupport = document.getElementById('sidemenu-support');
       if (sidemenuSupport) {
         sidemenuSupport.addEventListener('click', function () {
           hideAll();
           document.getElementById('support-screen').classList.remove('hidden');
           if (typeof renderSupportTab === 'function') renderSupportTab();
+        });
+      }
+
+      // Subastas
+      const sidemenuAuction = document.getElementById('sidemenu-auction');
+      if (sidemenuAuction) {
+        sidemenuAuction.addEventListener('click', function () {
+          hideAll();
+          document.getElementById('auction-screen').classList.remove('hidden');
+          if (typeof renderAuctionScreen === 'function') renderAuctionScreen();
         });
       }
 
@@ -168,10 +175,20 @@
         });
       }
 
-      // Back de la pantalla de apoyo
+      // Back pantalla apoyo
       const supportBack = document.getElementById('support-back');
       if (supportBack) {
         supportBack.addEventListener('click', function () {
+          hideAll();
+          appScreen.classList.remove('hidden');
+        });
+      }
+
+      // Back pantalla subasta
+      const auctionBack = document.getElementById('auction-back');
+      if (auctionBack) {
+        auctionBack.addEventListener('click', function () {
+          stopAuctionTimer();
           hideAll();
           appScreen.classList.remove('hidden');
         });
