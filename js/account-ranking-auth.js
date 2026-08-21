@@ -33,7 +33,8 @@
         const users = UserStore.load();
         rows = Object.keys(users).map(function (u) {
           const d = ensureUserDefaults(u, users[u]);
-          return { username: u, value: computeCollectionValue(d.inventory), inventory: d.inventory };
+          const solo = d.profiles.solo;
+          return { username: u, value: computeCollectionValue(solo.inventory), inventory: solo.inventory };
         }).sort(function (a, b) { return b.value - a.value; });
       }
 
@@ -79,7 +80,8 @@
         data = { inventory: inventoryOverride };
       } else {
         const users = UserStore.load();
-        data = ensureUserDefaults(username, users[username]);
+        const full = ensureUserDefaults(username, users[username]);
+        data = full.profiles.solo;
       }
       document.getElementById('visitor-title').textContent = 'Colección de ' + username;
       document.getElementById('avatar-btn-visitor').textContent = initial(username);
@@ -153,25 +155,24 @@
         return;
       }
 
-      const existing = users[currentUser] || {};
+      const existing = ensureUserDefaults(currentUser, users[currentUser] || {});
       const newPasswordHash = newPass ? await sha256Hex(newPass) : existing.passwordHash;
 
-      const updated = {
+      // Conservamos TODO lo demás (perfiles de todos los grupos, grupos a los
+      // que pertenece, grupo activo...) y solo cambiamos email/contraseña.
+      const updated = Object.assign({}, existing, {
         email: newEmail,
         passwordHash: newPasswordHash,
-        coins: existing.coins || 0,
-        inventory: existing.inventory || {},
-        ownedSkins: existing.ownedSkins || {},
-        lastClaim: existing.lastClaim || null,
         updatedAt: Date.now()
-      };
+      });
 
       delete users[currentUser];
       users[newUser] = updated;
       UserStore.save(users);
 
       currentUser = newUser;
-      pushUserData(newUser, updated);
+      const key = updated.activeGroup || 'solo';
+      pushUserData(newUser, updated.profiles[key]);
       document.getElementById('avatar-btn').textContent = initial(newUser);
       document.getElementById('avatar-btn-account').textContent = initial(newUser);
       document.getElementById('account-pass').value = '';
@@ -233,16 +234,16 @@
             errorMsg.style.display = 'block';
             return;
           }
-          // Traemos la cuenta completa desde el servidor a este dispositivo.
-          localUser = {
+          // Traemos la cuenta completa (todos los grupos y sus perfiles) desde el servidor.
+          localUser = ensureUserDefaults(user, {
             email: remote.email || (localUser && localUser.email) || '',
             passwordHash: remote.passwordHash,
-            coins: remote.coins || 0,
-            inventory: remote.inventory || {},
-            ownedSkins: remote.ownedSkins || {},
             banned: remote.banned || false,
+            groups: remote.groups || [],
+            activeGroup: remote.activeGroup || null,
+            profiles: remote.profiles || {},
             updatedAt: remote.updatedAt || Date.now()
-          };
+          });
           users[user] = localUser;
           UserStore.save(users);
         } else if (!localUser) {
@@ -268,7 +269,7 @@
       // Migración: si la cuenta aún no tenía hash (contraseña antigua en texto plano),
       // lo generamos ahora para que ya se pueda entrar desde cualquier otro dispositivo
       // a partir de este momento (se sube al servidor más abajo, DESPUÉS de bajar los
-      // datos reales, para no pisar nada).
+      // datos reales, para no pisar nada।
       if (!localUser.passwordHash) {
         localUser.passwordHash = passwordHash;
         delete localUser.password;
@@ -284,8 +285,11 @@
       errorMsg.style.display = 'none';
       await pullUserData(user);
       const refreshedUsers = UserStore.load();
-      const refreshedUser = refreshedUsers[user] || localUser;
-      pushUserData(user, refreshedUser);
+      const refreshedUser = ensureUserDefaults(user, refreshedUsers[user] || localUser);
+      refreshedUsers[user] = refreshedUser;
+      UserStore.save(refreshedUsers);
+      const key = refreshedUser.activeGroup || 'solo';
+      pushUserData(user, refreshedUser.profiles[key]);
 
       showApp(user);
     });
@@ -320,10 +324,17 @@
       }
 
       const passwordHash = await sha256Hex(pass);
-      const newUserData = { email: email, passwordHash: passwordHash, coins: 100, inventory: {}, updatedAt: Date.now() };
+      const newUserData = ensureUserDefaults(user, {
+        email: email,
+        passwordHash: passwordHash,
+        groups: [],
+        activeGroup: null,
+        profiles: { solo: { coins: 100, inventory: {} } },
+        updatedAt: Date.now()
+      });
       users[user] = newUserData;
       UserStore.save(users);
-      pushUserData(user, newUserData);
+      pushUserData(user, newUserData.profiles.solo);
 
       errorMsg.style.display = 'none';
       showApp(user);
