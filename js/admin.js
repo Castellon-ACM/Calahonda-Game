@@ -429,8 +429,7 @@ async function adminPersistUser(username) {
 }
 
 // Ajusta las monedas del perfil "solo" de un jugador de forma ATÓMICA y fiable:
-// - Lee el saldo REAL desde Firestore justo en ese instante (no un valor
-//   cacheado que pudiera estar desactualizado si el jugador jugó mientras tanto).
+// - Lee el saldo REAL desde Firestore justo en ese instante.
 // - Solo confirma éxito si el guardado en Firestore se ha hecho de verdad.
 // Devuelve { ok, coins, reason }.
 async function adminAdjustCoins(username, delta) {
@@ -549,39 +548,58 @@ async function adminGiftAll(amount) {
 }
 
 // ── Comprobar regalo pendiente del admin ──────────────────────────────
-// El regalo del admin siempre se suma al perfil ACTIVO del jugador en ese
-// momento (con el que esté jugando cuando lo recibe).
+// FIX: las monedas se suman directamente en Firestore con una transacción
+// atómica en el perfil ACTIVO del jugador. Esto evita que:
+// 1. Se pierdan monedas si el usuario abre la app en un dispositivo nuevo
+//    donde no tiene localStorage (antes el regalo se borraba sin sumarse).
+// 2. pullUserData sobreescriba las monedas recién sumadas antes de que
+//    pushUserData las suba a Firestore.
 async function checkAdminGift(username) {
   if (!username || typeof db === 'undefined' || !db) return;
   try {
-    const ref = db.collection('adminGifts').doc(username);
-    const doc = await ref.get();
-    if (!doc.exists) return;
-    const amount = doc.data().amount || 0;
-    if (amount <= 0) { await ref.delete(); return; }
+    const giftRef = db.collection('adminGifts').doc(username);
+    const giftDoc = await giftRef.get();
+    if (!giftDoc.exists) return;
+    const amount = giftDoc.data().amount || 0;
+    if (amount <= 0) { await giftRef.delete(); return; }
 
+    // Borrar el regalo ANTES de sumarlo para evitar que se procese dos veces
+    // si la app se cierra a mitad (es mejor perder el regalo que duplicarlo).
+    await giftRef.delete();
+
+    // Sumar las monedas directamente en Firestore con transacción atómica,
+    // en el perfil activo del jugador (solo o el grupo en el que esté).
+    const userRef = db.collection('users').doc(username);
+    let newCoins = null;
+    let activeKey = 'solo';
+
+    await db.runTransaction(async function (tx) {
+      const doc = await tx.get(userRef);
+      const d = doc.exists ? doc.data() : {};
+      activeKey = d.activeGroup || 'solo';
+      const current = (d.profiles && d.profiles[activeKey] && d.profiles[activeKey].coins) || 0;
+      newCoins = current + amount;
+      const update = { updatedAt: Date.now() };
+      update['profiles.' + activeKey + '.coins'] = newCoins;
+      update['profiles.' + activeKey + '.updatedAt'] = Date.now();
+      tx.set(userRef, update, { merge: true });
+    });
+
+    // Refrescar localStorage con el nuevo saldo confirmado en Firestore
     const users = UserStore.load();
     if (users[username]) {
-      const full = ensureUserDefaults(username, users[username]);
-      const key = full.activeGroup || 'solo';
-      full.profiles[key].coins = (full.profiles[key].coins || 0) + amount;
-      users[username] = full;
+      if (!users[username].profiles) users[username].profiles = {};
+      if (!users[username].profiles[activeKey]) users[username].profiles[activeKey] = {};
+      users[username].profiles[activeKey].coins = newCoins;
+      delete users[username].pendingSync; // el saldo ya está en Firestore, no hay nada pendiente
       UserStore.save(users);
     }
 
-    await ref.delete();
-
+    // Actualizar la UI si la app está visible
     const appScreen = document.getElementById('app-screen');
     if (!appScreen || appScreen.classList.contains('hidden')) return;
 
-    const key = (users[username].activeGroup || 'solo');
-    const profile = users[username].profiles[key];
-    const balanceEl = document.getElementById('balance-amount');
-    if (balanceEl && profile) balanceEl.textContent = profile.coins;
-
-    if (typeof pushUserData === 'function' && profile) {
-      pushUserData(username, profile);
-    }
+    if (typeof updateAllBalances === 'function') updateAllBalances(newCoins);
 
     document.getElementById('admin-gift-popup-text').textContent =
       'El administrador te ha regalado ' + amount.toLocaleString() + ' monedas 🪙';
@@ -773,8 +791,7 @@ document.addEventListener('DOMContentLoaded', function () {
     adminSelectedUser = null;
   });
 
-  // Dar monedas (ahora lee/escribe el saldo REAL en Firestore, con confirmación real,
-  // y refresca al momento la lista de abajo con el nuevo saldo)
+  // Dar monedas
   document.getElementById('admin-give-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -793,7 +810,7 @@ document.addEventListener('DOMContentLoaded', function () {
     adminRenderUserList(document.getElementById('admin-search').value.trim());
   });
 
-  // Quitar monedas (mismo mecanismo fiable + refresco automático de la lista)
+  // Quitar monedas
   document.getElementById('admin-take-coins-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const amount = parseInt(document.getElementById('admin-coins-input').value, 10);
@@ -820,7 +837,7 @@ document.addEventListener('DOMContentLoaded', function () {
     await adminGiftAll(amount);
   });
 
-  // Cambiar contraseña (ahora se sincroniza en Firestore, no solo local)
+  // Cambiar contraseña
   document.getElementById('admin-change-pass-btn').addEventListener('click', async function () {
     if (!adminSelectedUser) return;
     const newPass = document.getElementById('admin-newpass-input').value.trim();
@@ -880,7 +897,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Cerrar popup regalo
   document.getElementById('admin-gift-popup-ok').addEventListener('click', function () {
     const popup = document.getElementById('admin-gift-popup');
-    popup.classList.remove('hidden');
     popup.style.display = 'none';
     popup.classList.add('hidden');
   });
