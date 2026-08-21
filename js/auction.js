@@ -3,22 +3,16 @@
 //  - Cierra el domingo 24 ago 2026 a las 00:00 hora local
 //  - Solo se muestra la puja del jugador actual, nunca la de los demás
 //  - No se puede pujar más de lo que se tiene
+//  - La puja se puede modificar (subir) en cualquier momento antes del cierre
 //  - No se puede robar esta botella
-//  - El ganador la recibe automáticamente al terminar el tiempo
+//  - Al cerrar se busca al pujador solvente con mayor puja
 // =====================================================================
 
-const AUCTION_BOTTLE   = 'Alcohol 96%';
-const AUCTION_RARITY   = 'mythic';
-const AUCTION_END      = new Date('2026-08-24T00:00:00').getTime(); // domingo 00:00 local
-const AUCTION_DOC      = 'auction_alcohol96_aug2026';
-const AUCTION_MIN_BID  = 1;
+const AUCTION_BOTTLE  = 'Alcohol 96%';
+const AUCTION_RARITY  = 'mythic';
+const AUCTION_END     = new Date('2026-08-24T00:00:00').getTime(); // domingo 00:00 local
+const AUCTION_DOC     = 'auction_alcohol96_aug2026';
 
-// Estilo visual de la botella mítica
-const AUCTION_BOTTLE_STYLE = {
-  glass: '#e8f4ff', cap: '#00b4ff', label: '#00b4ff'
-};
-
-// ── SVG de la botella ─────────────────────────────────────────────────
 function auctionBottleSVG(size) {
   size = size || 60;
   return '<svg viewBox="0 0 60 100" width="' + size + '" height="' + (size * 100 / 60) + '">' +
@@ -41,10 +35,9 @@ function auctionBottleSVG(size) {
     '</svg>';
 }
 
-// ── Tiempo restante ───────────────────────────────────────────────────
 function auctionTimeLeft() {
   const diff = AUCTION_END - Date.now();
-  if (diff <= 0) return null; // cerrada
+  if (diff <= 0) return null;
   const totalSec = Math.floor(diff / 1000);
   const d = Math.floor(totalSec / 86400);
   const h = Math.floor((totalSec % 86400) / 3600);
@@ -56,45 +49,39 @@ function auctionTimeLeft() {
 }
 function pad(n) { return String(n).padStart(2, '0'); }
 
-// ── Render principal ─────────────────────────────────────────────────
+// ── Render principal ──────────────────────────────────────────────────
 let _auctionTimer = null;
 
 async function renderAuctionScreen() {
-  const screen = document.getElementById('auction-screen');
-  if (!screen) return;
-
   const content = document.getElementById('auction-content');
-  const closed  = Date.now() >= AUCTION_END;
+  if (!content) return;
 
-  // Leer datos de Firestore
-  let topBid = 0;
+  const closed = Date.now() >= AUCTION_END;
+  let bids = {};
+  let myBid = 0;
   let winner = null;
-  let myBid  = 0;
+  let topBid = 0;
 
   if (firebaseReady && db) {
     try {
       const doc = await db.collection('auctions').doc(AUCTION_DOC).get();
       if (doc.exists) {
-        topBid = doc.data().topBid  || 0;
-        winner = doc.data().winner  || null;
-        // Puja personal del jugador actual (campo privado por usuario)
-        const bids = doc.data().bids || {};
-        myBid = bids[currentUser] || 0;
+        bids   = doc.data().bids   || {};
+        winner = doc.data().winner || null;
+        topBid = doc.data().topBid || 0;
+        myBid  = bids[currentUser] || 0;
       }
-    } catch (e) {
-      console.warn('[Auction] No se pudo leer:', e);
-    }
+    } catch (e) { console.warn('[Auction] No se pudo leer:', e); }
   }
 
-  // Si cerró, entregar al ganador si aún no se hizo
-  if (closed && winner && !_auctionDelivered) {
-    _maybeDeliverAuction(winner, topBid);
+  if (closed && !_auctionDelivered) {
+    _resolveAndDeliver(bids);
   }
 
   const timeLeft = auctionTimeLeft();
+  const myCoins  = getCurrentUserData().coins;
 
   content.innerHTML =
-    // Cabecera
     '<div style="text-align:center;margin-bottom:16px">' +
       '<div style="font-size:11px;letter-spacing:2px;color:#00b4ff;font-weight:800;text-transform:uppercase;margin-bottom:8px">✨ Subasta exclusiva</div>' +
       auctionBottleSVG(72) +
@@ -103,31 +90,43 @@ async function renderAuctionScreen() {
       '<div style="color:#b8a679;font-size:12px;margin-top:8px;line-height:1.5">La botella más pura del juego.<br>Solo existirá <b style="color:#fff">1 copia</b> en toda la app.<br>No se puede robar.</div>' +
     '</div>' +
 
-    // Contador
+    // Countdown o cerrada
     (closed
-      ? '<div id="auction-timer" style="text-align:center;background:#1a1505;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #3a2c14">' +
+      ? '<div style="text-align:center;background:#1a1505;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #3a2c14">' +
           '<div style="color:#ff8f8f;font-size:13px;font-weight:700">🔒 Subasta cerrada</div>' +
-          (winner ? '<div style="color:#b8a679;font-size:12px;margin-top:4px">Ganador: <b style="color:#f4d98a">' + winner + '</b> con <b>' + topBid + ' 🪙</b></div>' : '') +
+          (winner ? '<div style="color:#b8a679;font-size:12px;margin-top:4px">Ganador: <b style="color:#f4d98a">' + winner + '</b></div>' : '<div style="color:#6b5f45;font-size:12px;margin-top:4px">Calculando ganador...</div>') +
         '</div>'
-      : '<div id="auction-timer" style="text-align:center;background:linear-gradient(135deg,#0a1a2a,#0a2a3a);border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #00b4ff44">' +
+      : '<div style="text-align:center;background:linear-gradient(135deg,#0a1a2a,#0a2a3a);border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #00b4ff44">' +
           '<div style="color:#00b4ff;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:4px">⏳ CIERRA EN</div>' +
           '<div id="auction-countdown" style="color:#fff;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">' + (timeLeft || '—') + '</div>' +
           '<div style="color:#b8a679;font-size:11px;margin-top:4px">Domingo 24 ago · 00:00h</div>' +
         '</div>') +
 
-    // Puja actual del jugador
+    // Tu puja + tus monedas actuales
     '<div style="background:#1a1505;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #3a2c14">' +
-      '<div style="color:#b8a679;font-size:12px;margin-bottom:6px">Tu puja actual</div>' +
-      '<div style="color:#f4d98a;font-size:22px;font-weight:800">' + (myBid > 0 ? myBid + ' 🪙' : '—') + '</div>' +
-      (myBid > 0 ? '<div style="color:#8fd17c;font-size:11px;margin-top:4px">✓ Puja registrada</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div>' +
+          '<div style="color:#b8a679;font-size:12px;margin-bottom:4px">Tu puja</div>' +
+          '<div style="color:#f4d98a;font-size:22px;font-weight:800">' + (myBid > 0 ? myBid + ' 🪙' : '—') + '</div>' +
+          (myBid > 0 ? '<div style="color:#8fd17c;font-size:11px;margin-top:2px">✓ Registrada</div>' : '') +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div style="color:#b8a679;font-size:12px;margin-bottom:4px">Tus monedas</div>' +
+          '<div style="color:#fff;font-size:18px;font-weight:800">' + myCoins + ' 🪙</div>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
 
-    // Formulario de puja (solo si abierta)
+    // Formulario — visible siempre que la subasta esté abierta
+    // Permite subir o bajar la puja (solo limitado a que tengas las monedas)
     (!closed
       ? '<div style="background:#161116;border-radius:12px;padding:14px;border:1px solid #3a2c14;margin-bottom:6px">' +
-          '<div style="color:#b8a679;font-size:12px;margin-bottom:8px">Nueva puja — debes superar la anterior' + (myBid > 0 ? ' (' + myBid + ' 🪙)' : '') + '</div>' +
-          '<input type="number" id="auction-bid-input" min="' + (Math.max(myBid, topBid) + 1) + '" placeholder="Cantidad de monedas" class="bet-amount-input" style="margin-bottom:8px">' +
-          '<button type="button" class="btn" id="auction-bid-btn" style="background:linear-gradient(135deg,#00d4ff,#0040ff);color:#fff">⚡ Pujar</button>' +
+          '<div style="color:#b8a679;font-size:12px;margin-bottom:4px">' +
+            (myBid > 0 ? 'Modifica tu puja (actual: ' + myBid + ' 🪙)' : 'Introduce tu puja') +
+          '</div>' +
+          '<div style="color:#6b5f45;font-size:11px;margin-bottom:8px">Puedes cambiarla hasta el último segundo. No puedes pujar más de lo que tienes.</div>' +
+          '<input type="number" id="auction-bid-input" min="1" max="' + myCoins + '" placeholder="Cantidad de monedas" class="bet-amount-input" style="margin-bottom:8px"' + (myBid > 0 ? ' value="' + myBid + '"' : '') + '>' +
+          '<button type="button" class="btn" id="auction-bid-btn" style="background:linear-gradient(135deg,#00d4ff,#0040ff);color:#fff">⚡ ' + (myBid > 0 ? 'Actualizar puja' : 'Pujar') + '</button>' +
           '<div id="auction-bid-msg" style="margin-top:8px;font-size:13px;text-align:center;min-height:16px"></div>' +
         '</div>'
       : '') +
@@ -135,13 +134,14 @@ async function renderAuctionScreen() {
     // Reglas
     '<div style="color:#6b5f45;font-size:11px;line-height:1.7;margin-top:14px;text-align:center">' +
       '• Solo ves tu propia puja, no la del resto<br>' +
+      '• Puedes modificar tu puja en cualquier momento<br>' +
       '• No puedes pujar más monedas de las que tienes<br>' +
-      '• Cada puja debe superar tu puja anterior<br>' +
-      '• El ganador recibe la botella automáticamente<br>' +
+      '• Al cerrar, gana el pujador con más monedas que sí las tenga<br>' +
+      '• Si el primero no tiene saldo suficiente, pasa al siguiente<br>' +
       '• Esta botella no se puede robar' +
     '</div>';
 
-  // Evento pujar
+  // Evento pujar / actualizar
   if (!closed) {
     const bidBtn   = document.getElementById('auction-bid-btn');
     const bidInput = document.getElementById('auction-bid-input');
@@ -151,52 +151,35 @@ async function renderAuctionScreen() {
       const amount = parseInt(bidInput.value, 10);
       bidMsg.style.color = '#ff8f8f';
 
-      if (isNaN(amount) || amount < 1) {
-        bidMsg.textContent = 'Introduce una cantidad válida';
-        return;
-      }
-      const data = getCurrentUserData();
-      if (amount > data.coins) {
-        bidMsg.textContent = 'No tienes suficientes monedas (tienes ' + data.coins + ' 🪙)';
-        return;
-      }
-      if (amount <= myBid) {
-        bidMsg.textContent = 'Tu nueva puja debe superar la anterior (' + myBid + ' 🪙)';
+      if (isNaN(amount) || amount < 1) { bidMsg.textContent = 'Introduce una cantidad válida'; return; }
+
+      const fresh = getCurrentUserData();
+      if (amount > fresh.coins) {
+        bidMsg.textContent = 'No tienes suficientes monedas (tienes ' + fresh.coins + ' 🪙)';
         return;
       }
 
       bidBtn.disabled = true;
-      bidBtn.textContent = 'Enviando...';
+      bidBtn.textContent = 'Guardando...';
 
       try {
-        await db.runTransaction(async function (tx) {
-          const ref = db.collection('auctions').doc(AUCTION_DOC);
-          const doc = await tx.get(ref);
-          const current = doc.exists ? (doc.data().topBid || 0) : 0;
-
-          const update = {
-            updatedAt: Date.now(),
-            ['bids.' + currentUser]: amount
-          };
-          if (amount > current) {
-            update.topBid = amount;
-            update.winner = currentUser;
-          }
-          tx.set(ref, update, { merge: true });
-        });
+        // Guardar la puja del jugador (puede ser subida o bajada — no hay restricción de mínimo
+        // respecto a la puja anterior, el jugador puede modificar libremente)
+        // El topBid y winner se recalculan en _resolveAndDeliver al cerrar
+        await db.collection('auctions').doc(AUCTION_DOC).set(
+          { bids: { [currentUser]: amount }, updatedAt: Date.now() },
+          { merge: true }
+        );
 
         bidMsg.style.color = '#8fd17c';
-        bidMsg.textContent = '¡Puja de ' + amount + ' 🪙 registrada!';
-        bidInput.value = '';
-        // Refrescar pantalla con los nuevos datos
-        setTimeout(renderAuctionScreen, 800);
+        bidMsg.textContent = '✓ Puja de ' + amount + ' 🪙 guardada';
+        setTimeout(renderAuctionScreen, 700);
       } catch (e) {
-        bidMsg.textContent = 'Error al pujar, inténtalo de nuevo';
+        bidMsg.textContent = 'Error al guardar, inténtalo de nuevo';
         console.warn('[Auction] Error pujar:', e);
+        bidBtn.disabled = false;
+        bidBtn.textContent = '⚡ ' + (myBid > 0 ? 'Actualizar puja' : 'Pujar');
       }
-
-      bidBtn.disabled = false;
-      bidBtn.textContent = '⚡ Pujar';
     });
   }
 
@@ -210,7 +193,7 @@ async function renderAuctionScreen() {
       if (!t) {
         clearInterval(_auctionTimer);
         el.textContent = '¡Cerrada!';
-        setTimeout(renderAuctionScreen, 1000);
+        setTimeout(renderAuctionScreen, 1200);
       } else {
         el.textContent = t;
       }
@@ -218,40 +201,93 @@ async function renderAuctionScreen() {
   }
 }
 
-// ── Entregar botella al ganador ───────────────────────────────────────
+// ── Resolver ganador solvente y entregar ──────────────────────────────
+// Al cerrar la subasta, itera las pujas de mayor a menor y comprueba en
+// tiempo real si el pujador tiene saldo suficiente en Firestore.
+// El primero que sí tenga gana. Así si Juan pujó 4000 pero los perdió
+// antes del cierre, la botella pasa a Luis con 3000, etc.
 let _auctionDelivered = false;
-async function _maybeDeliverAuction(winner, topBid) {
+
+async function _resolveAndDeliver(bids) {
   if (_auctionDelivered || !firebaseReady || !db) return;
+  _auctionDelivered = true; // evitar doble ejecución en el mismo dispositivo
+
   try {
+    // ¿Ya se entregó antes (desde otro dispositivo)?
     const deliveredDoc = await db.collection('auctions').doc(AUCTION_DOC + '_delivered').get();
-    if (deliveredDoc.exists) { _auctionDelivered = true; return; }
+    if (deliveredDoc.exists) return;
 
-    // Marcar como entregada (idempotente)
-    await db.collection('auctions').doc(AUCTION_DOC + '_delivered').set({ deliveredAt: Date.now(), winner: winner, topBid: topBid });
+    // Ordenar pujadores de mayor a menor puja
+    const sorted = Object.keys(bids)
+      .map(function (u) { return { user: u, bid: bids[u] || 0 }; })
+      .filter(function (e) { return e.bid > 0; })
+      .sort(function (a, b) { return b.bid - a.bid; });
 
-    // Añadir la botella mítica al inventario del ganador en Firestore
-    const userRef = db.collection('users').doc(winner);
+    if (sorted.length === 0) return; // nadie pujó
+
+    // Buscar el primero que tenga saldo real en Firestore
+    let realWinner = null;
+    let winnerBid  = 0;
+
+    for (var i = 0; i < sorted.length; i++) {
+      const candidate = sorted[i];
+      try {
+        const userDoc = await db.collection('users').doc(candidate.user).get();
+        if (!userDoc.exists) continue;
+        const d   = userDoc.data();
+        const key = d.activeGroup || 'solo';
+        const coins = (d.profiles && d.profiles[key] && d.profiles[key].coins) || 0;
+        if (coins >= candidate.bid) {
+          realWinner = candidate.user;
+          winnerBid  = candidate.bid;
+          break;
+        }
+      } catch (e) { continue; }
+    }
+
+    if (!realWinner) {
+      // Nadie tiene saldo suficiente — guardar resultado vacío
+      await db.collection('auctions').doc(AUCTION_DOC + '_delivered').set({
+        deliveredAt: Date.now(), winner: null, topBid: 0, reason: 'no_solvent_bidder'
+      });
+      return;
+    }
+
+    // Marcar entregada antes de tocar el inventario (idempotente)
+    await db.collection('auctions').doc(AUCTION_DOC + '_delivered').set({
+      deliveredAt: Date.now(), winner: realWinner, topBid: winnerBid
+    });
+
+    // Actualizar winner visible en el documento de subasta
+    await db.collection('auctions').doc(AUCTION_DOC).set(
+      { winner: realWinner, topBid: winnerBid },
+      { merge: true }
+    );
+
+    // Añadir botella al inventario del ganador con transacción atómica
+    const userRef = db.collection('users').doc(realWinner);
     await db.runTransaction(async function (tx) {
       const doc = await tx.get(userRef);
       const d   = doc.exists ? doc.data() : {};
       const key = d.activeGroup || 'solo';
       const current = (d.profiles && d.profiles[key] && d.profiles[key].inventory && d.profiles[key].inventory[AUCTION_BOTTLE]) || 0;
-      const update  = {};
+      const update  = { updatedAt: Date.now() };
       update['profiles.' + key + '.inventory.' + AUCTION_BOTTLE] = current + 1;
       update['profiles.' + key + '.updatedAt'] = Date.now();
-      update.updatedAt = Date.now();
       tx.set(userRef, update, { merge: true });
     });
 
-    // Notificar al ganador
-    await queueUserNotification(winner, '🏆 ¡Has ganado la subasta! La botella "' + AUCTION_BOTTLE + '" ✨ ya está en tu colección.');
-    _auctionDelivered = true;
+    await queueUserNotification(
+      realWinner,
+      '🏆 ¡Has ganado la subasta de "' + AUCTION_BOTTLE + '" ✨! Ya está en tu colección.'
+    );
+
   } catch (e) {
-    console.warn('[Auction] Error entregando botella:', e);
+    _auctionDelivered = false; // permitir reintento si algo falló
+    console.warn('[Auction] Error resolviendo ganador:', e);
   }
 }
 
-// Parar el timer cuando se sale de la pantalla
 function stopAuctionTimer() {
   if (_auctionTimer) { clearInterval(_auctionTimer); _auctionTimer = null; }
 }
