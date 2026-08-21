@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Alcohol 365">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=20260821b">
+<link rel="stylesheet" href="css/style.css?v=20260821c">
 <link rel="stylesheet" href="css/album.css?v=20260821a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -48,7 +48,6 @@
     <div class="coin-wrap">
       <canvas id="coin-login" width="176" height="176" style="width:176px;height:176px;"></canvas>
     </div>
-
     <div class="card">
       <h1>Iniciar sesión</h1>
       <form id="login-form">
@@ -74,7 +73,6 @@
     <div class="coin-wrap">
       <canvas id="coin-register" width="120" height="120" style="width:120px;height:120px;"></canvas>
     </div>
-
     <div class="card">
       <h1>Crear cuenta</h1>
       <form id="register-form">
@@ -99,7 +97,7 @@
     </div>
   </div>
 
-  <!-- Pantalla tras entrar: topbar + pestañas -->
+  <!-- Pantalla principal -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
       <button type="button" class="hamburger-btn" id="hamburger-btn" aria-label="Menú">☰</button>
@@ -107,7 +105,7 @@
       <div style="width:38px;"></div>
     </div>
 
-    <!-- Menú lateral (hamburguesa) -->
+    <!-- Menú lateral -->
     <div id="side-menu-overlay" class="hidden"></div>
     <div id="side-menu">
       <div class="avatar-btn" id="avatar-btn" style="width:56px;height:56px;font-size:22px;margin-bottom:10px;"></div>
@@ -115,6 +113,7 @@
       <button type="button" class="side-menu-item tabbar-btn" data-tab="video">📺 Vídeo</button>
       <button type="button" class="side-menu-item tabbar-btn" data-tab="ranking">🏆 Ranking</button>
       <button type="button" class="side-menu-item" id="sidemenu-mygroups">👥 Mis grupos</button>
+      <button type="button" class="side-menu-item" id="sidemenu-support">☕ Apoyo</button>
       <button type="button" class="side-menu-item" id="news-btn">
         <span>✉️ Novedades</span>
         <span class="news-badge hidden" id="news-badge">0</span>
@@ -157,9 +156,6 @@
           </div>
           <button type="button" class="btn spin-btn" id="spin-btn">Girar ruleta (10 🪙)</button>
           <div class="spin-result" id="spin-result"></div>
-
-          <div class="inventory-title">📚 Tu álbum de botellas</div>
-          <div id="inventory-grid"></div>
 
           <div class="inventory-title">Ruleta de cosméticos</div>
           <div class="roulette-wrap">
@@ -295,10 +291,11 @@
         </div>
       </div>
 
-      <!-- PESTAÑA APOYO -->
+      <!-- PESTAÑA ÁLBUM (antes era apoyo) -->
       <div id="tab-support" class="app-tab hidden">
         <div class="game">
-          <div id="support-content"></div>
+          <div class="inventory-title">📚 Tu álbum de botellas</div>
+          <div id="inventory-grid"></div>
         </div>
       </div>
 
@@ -320,7 +317,7 @@
         <span class="tabbar-icon">💬</span><span>Chat</span>
       </button>
       <button class="tabbar-btn" id="tabbtn-support" data-tab="support">
-        <span class="tabbar-icon">☕</span><span>Apoyo</span>
+        <span class="tabbar-icon">📚</span><span>Álbum</span>
       </button>
     </div>
   </div>
@@ -358,9 +355,6 @@
           </div>
         </div>
 
-        <div class="inventory-title">Tu colección</div>
-        <div class="inventory-grid" id="account-inventory-grid"></div>
-
         <button type="button" class="btn ranking-btn" id="view-ranking-btn">Ver ranking de jugadores</button>
       </div>
     </div>
@@ -375,23 +369,19 @@
     <div class="screen-body ranking-body">
       <div class="card">
         <h1>Ranking de jugadores</h1>
-
         <div style="display:flex;gap:8px;margin-bottom:14px;">
           <button type="button" class="spin-mult-btn selected" id="ranking-toggle-global" style="flex:1;">🌍 Global</button>
           <button type="button" class="spin-mult-btn" id="ranking-toggle-group" style="flex:1;">👥 Mi grupo</button>
         </div>
-
         <div id="ranking-global-view">
           <input type="text" id="ranking-search" class="bet-amount-input" placeholder="🔍 Buscar jugador..." style="margin-bottom:14px;">
           <div id="ranking-list"></div>
         </div>
-
         <div id="ranking-group-view" class="hidden">
           <div id="group-no-group">
             <div class="inventory-title">No tienes ningún grupo activo ahora mismo</div>
             <div style="color:#8a7c5a;font-size:12px;margin-bottom:12px;">Ve a "👥 Mis grupos" en el menú ☰ para crear uno o unirte con un código.</div>
           </div>
-
           <div id="group-has-group" class="hidden">
             <div style="background:#1a1505;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #3a2c1455;">
               <div id="group-name" style="color:#f5c518;font-weight:700;font-size:16px;margin-bottom:6px;"></div>
@@ -402,7 +392,6 @@
             </div>
             <div id="group-ranking-list"></div>
           </div>
-
           <div class="spin-result" id="group-msg"></div>
         </div>
       </div>
@@ -419,12 +408,24 @@
       <div class="card">
         <h1>Mis grupos</h1>
         <div id="mygroups-list"></div>
-
         <div style="margin:20px 0 6px;color:#b8a679;font-size:13px;">Crear o unirte a otro grupo:</div>
         <button type="button" class="btn" id="mygroups-create-btn">➕ Crear grupo</button>
         <input type="text" id="mygroups-join-input" class="bet-amount-input" placeholder="Código de grupo (ej: AB12CD)" style="text-transform:uppercase;margin:10px 0 8px;">
         <button type="button" class="btn" id="mygroups-join-btn">🔑 Unirme con código</button>
         <div class="spin-result" id="mygroups-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de APOYO (abierta desde el menú hamburguesa) -->
+  <div id="support-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="support-back">←</button>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="screen-body ranking-body">
+      <div class="card">
+        <div id="support-content"></div>
       </div>
     </div>
   </div>
@@ -482,7 +483,7 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260821a"></script>
+  <script src="js/navigation.js?v=20260821b"></script>
   <script src="js/announcements.js?v=20260821a"></script>
   <script src="js/casino-roulette.js?v=20260820b"></script>
   <script src="js/casino-slots.js?v=20260820b"></script>
@@ -490,13 +491,13 @@
   <script src="js/casino-turtles.js?v=20260820b"></script>
   <script src="js/casino-cosmetics.js?v=20260820c"></script>
   <script src="js/casino-poker.js?v=20260820b"></script>
-  <script src="js/game-bottles.js?v=20260821b"></script>
+  <script src="js/game-bottles.js?v=20260821c"></script>
   <script src="js/ads.js?v=20260820d"></script>
-  <script src="js/account-ranking-auth.js?v=20260821a"></script>
+  <script src="js/account-ranking-auth.js?v=20260821b"></script>
   <script src="js/groups.js?v=20260821c"></script>
   <script src="js/admin.js?v=20260821a"></script>
   <script src="js/event.js?v=20260819b"></script>
-  <script src="js/support.js?v=20260819"></script>
+  <script src="js/support.js?v=20260821a"></script>
   <script src="js/steal.js?v=20260820c"></script>
   <script src="js/notifications.js?v=20260820a"></script>
   <script src="js/gift.js?v=20260820a"></script>
