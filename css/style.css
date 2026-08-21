@@ -1318,7 +1318,7 @@
     color: #fff;
     font-size: 15px;
     font-weight: 600;
-    padding: 14px 8px;
+    padding: 10px 8px;
     border-radius: 10px;
     cursor: pointer;
     display: flex;
@@ -1326,6 +1326,15 @@
     justify-content: space-between;
     width: 100%;
   }
+  /* anular el padding extra que hereda de .tabbar-btn */
+  .side-menu-item.tabbar-btn {
+    flex-direction: row;
+    gap: 0;
+    padding: 10px 8px;
+    font-size: 15px;
+    color: #fff;
+  }
+  .side-menu-item.tabbar-btn .tabbar-icon { display: none; }
   .side-menu-item:active { background: #2a2210; }
   .side-menu-item .news-badge {
     position: static;
