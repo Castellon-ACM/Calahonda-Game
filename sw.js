@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v20260821-6';
+const CACHE_VERSION = 'v20260821-7';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 
 const PRECACHE_URLS = [
@@ -11,7 +11,7 @@ const PRECACHE_URLS = [
   './js/casino-blackjack.js', './js/casino-turtles.js',
   './js/casino-cosmetics.js', './js/casino-poker.js', './js/ads.js',
   './js/notifications.js', './js/gift.js', './js/announcements.js',
-  './js/coin3d.js', './js/bottle3d.js', './js/skins.js',
+  './js/auction.js', './js/coin3d.js', './js/bottle3d.js', './js/skins.js',
   './assets/icon-192.png', './assets/icon-512.png'
 ];
 
@@ -33,15 +33,14 @@ self.addEventListener('activate', function (event) {
         keys.filter(function (key) { return key !== CACHE_NAME; })
             .map(function (key) { return caches.delete(key); })
       );
-    }).then(function () {
-      return self.clients.claim();
-    }).then(function () {
-      return self.clients.matchAll({ type: 'window' }).then(function (clients) {
-        clients.forEach(function (client) {
-          client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+    }).then(function () { return self.clients.claim(); })
+      .then(function () {
+        return self.clients.matchAll({ type: 'window' }).then(function (clients) {
+          clients.forEach(function (client) {
+            client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+          });
         });
-      });
-    })
+      })
   );
 });
 
