@@ -96,6 +96,10 @@ async function pushUserData(username, profileData) {
       updatedAt: Date.now()
     };
     if (full.passwordHash) payload.passwordHash = full.passwordHash;
+    // Subir también lastSeenAnnouncement para que persista entre sesiones
+    if (full.lastSeenAnnouncement !== undefined) {
+      payload.lastSeenAnnouncement = full.lastSeenAnnouncement;
+    }
 
     payload.profiles = {};
     payload.profiles[key] = {
@@ -166,14 +170,6 @@ async function fetchRemoteUser(username) {
 
 // Carga los datos de un usuario desde Firestore y los aplica al localStorage.
 // Se llama al hacer login para sincronizar monedas/inventario que el admin haya modificado.
-//
-// IMPORTANTE — cómo se decide qué saldo de monedas gana:
-// El admin usa una transacción atómica en Firestore para ajustar coins, así que en
-// general Firestore es la fuente de verdad. PERO si este dispositivo tiene un cambio
-// de monedas que TODAVÍA no se ha confirmado guardado en Firestore (pendingSync=true,
-// por ejemplo porque el jugador ganó monedas con mala conexión y el guardado falló),
-// NO pisamos ese valor local con el de Firestore, que estaría desactualizado. En su
-// lugar, dejamos que el reintento automático (flushPendingSync) termine de subirlo.
 async function pullUserData(username) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -195,6 +191,17 @@ async function pullUserData(username) {
     // saliste de un grupo desde otro dispositivo, aquí se refleja) ────
     if (remote.groups !== undefined) users[username].groups = remote.groups;
     if (remote.activeGroup !== undefined) users[username].activeGroup = remote.activeGroup;
+
+    // ── lastSeenAnnouncement: tomar siempre el mayor entre local y remoto ──
+    // Así si el usuario leyó las noticias en otro dispositivo, no le vuelven
+    // a aparecer como nuevas en este. Y si cerró sesión y vuelve a entrar,
+    // sabe que ya las vio.
+    if (remote.lastSeenAnnouncement !== undefined) {
+      const localSeen = users[username].lastSeenAnnouncement || 0;
+      if (remote.lastSeenAnnouncement > localSeen) {
+        users[username].lastSeenAnnouncement = remote.lastSeenAnnouncement;
+      }
+    }
 
     // ── Perfiles: fusionar cada perfil (monedas/inventario) que venga del
     // servidor con los que ya tengamos localmente, perfil por perfil ──────
