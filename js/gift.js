@@ -52,11 +52,18 @@ async function sendGift(targetUsername, amount) {
   updateAllBalances(data.coins);
 
   try {
-    // Sumar al destinatario en Firestore
-    await db.collection('users').doc(targetUsername).set({
-      coins: firebase.firestore.FieldValue.increment(amount),
-      updatedAt: Date.now()
-    }, { merge: true });
+    // Averiguar en qué perfil está activo el destinatario para sumar
+    // las monedas en el lugar correcto (profiles.<key>.coins)
+    const remoteDoc = await db.collection('users').doc(targetUsername).get();
+    const remoteData = remoteDoc.exists ? remoteDoc.data() : {};
+    const targetKey = remoteData.activeGroup || 'solo';
+
+    const profileUpdate = {};
+    profileUpdate['profiles.' + targetKey + '.coins'] = firebase.firestore.FieldValue.increment(amount);
+    profileUpdate['profiles.' + targetKey + '.updatedAt'] = Date.now();
+    profileUpdate['updatedAt'] = Date.now();
+
+    await db.collection('users').doc(targetUsername).update(profileUpdate);
 
     // Notificar al destinatario
     await queueUserNotification(
