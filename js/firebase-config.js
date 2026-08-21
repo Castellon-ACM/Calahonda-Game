@@ -36,7 +36,8 @@ async function sha256Hex(text) {
   }
 }
 
-// Sube el inventario público al ranking (sin datos privados como contraseña).
+// Sube el inventario público al ranking GLOBAL (siempre el perfil "solo",
+// nunca el de un grupo — para eso está el ranking de cada grupo).
 async function pushToLeaderboard(username, inventory) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -71,26 +72,44 @@ function _markPendingSync(username, pending) {
   } catch (e) {}
 }
 
-// Sube los datos completos del jugador a la colección 'users' de Firestore.
-// Esto permite al admin ver y gestionar todos los jugadores desde cualquier dispositivo,
-// y permite iniciar sesión con el mismo usuario desde otro móvil o el PC.
+// Sube los datos del jugador a Firestore ('users/{username}').
+// - Los datos de IDENTIDAD (email, contraseña, grupos a los que pertenece,
+//   grupo activo) se leen siempre del registro completo en este dispositivo.
+// - Los datos de JUEGO (monedas, inventario...) que se pasan en `profileData`
+//   se guardan SOLO dentro del perfil activo (profiles.solo o profiles.<código>),
+//   sin tocar los datos de los demás grupos a los que pertenezca el jugador.
 // Solo se sube el HASH de la contraseña (nunca la contraseña en texto plano).
 // Devuelve true/false según si se guardó de verdad en Firestore.
-async function pushUserData(username, data) {
-  if (!firebaseReady || !db || !username || !data) return false;
+async function pushUserData(username, profileData) {
+  if (!firebaseReady || !db || !username || !profileData) return false;
   try {
+    const users = UserStore.load();
+    const full = users[username] || {};
+    const key = full.activeGroup || 'solo';
+
     const payload = {
       username: username,
-      coins: data.coins || 0,
-      inventory: data.inventory || {},
-      email: data.email || '',
-      banned: data.banned || false,
-      value: computeCollectionValue(data.inventory || {}),
+      email: full.email || '',
+      banned: full.banned || false,
+      groups: full.groups || [],
+      activeGroup: full.activeGroup || null,
       updatedAt: Date.now()
     };
-    if (data.passwordHash) payload.passwordHash = data.passwordHash;
-    if (data.ownedSkins) payload.ownedSkins = data.ownedSkins;
-    payload.groupCode = data.groupCode || null;
+    if (full.passwordHash) payload.passwordHash = full.passwordHash;
+
+    payload.profiles = {};
+    payload.profiles[key] = {
+      coins: profileData.coins || 0,
+      inventory: profileData.inventory || {},
+      ownedSkins: profileData.ownedSkins || {},
+      lastClaim: profileData.lastClaim || null,
+      rouletteHistory: profileData.rouletteHistory || [],
+      value: computeCollectionValue(profileData.inventory || {}),
+      updatedAt: Date.now()
+    };
+
+    // merge:true hace un merge profundo de objetos anidados, así que esto
+    // solo toca profiles.<key> y no borra los demás perfiles del jugador.
     await db.collection('users').doc(username).set(payload, { merge: true });
     _markPendingSync(username, false);
     return true;
@@ -109,7 +128,9 @@ async function flushPendingSync() {
     const users = UserStore.load();
     const pendingUsernames = Object.keys(users).filter(function (u) { return users[u] && users[u].pendingSync; });
     for (const u of pendingUsernames) {
-      await pushUserData(u, users[u]);
+      const full = ensureUserDefaults(u, users[u]);
+      const key = full.activeGroup || 'solo';
+      await pushUserData(u, full.profiles[key]);
     }
   } catch (e) {}
 }
@@ -164,38 +185,44 @@ async function pullUserData(username) {
 
     const hasPendingLocalChange = !!users[username].pendingSync;
 
-    // ── Skins: siempre fusionar (merge) ──────────────────────────────
-    if (remote.ownedSkins) {
-      users[username].ownedSkins = Object.assign({}, users[username].ownedSkins || {}, remote.ownedSkins);
-    }
-
     // ── Hash de contraseña: siempre sincronizar si hay uno más nuevo ──
     if (remote.passwordHash && remote.passwordHash !== users[username].passwordHash) {
       users[username].passwordHash = remote.passwordHash;
       delete users[username].password;
     }
 
-    // ── Grupo: sincronizar siempre desde el servidor (así, si te unes o
-    // sales de un grupo desde otro dispositivo, aquí también se refleja) ──
-    if (remote.groupCode !== undefined && remote.groupCode !== users[username].groupCode) {
-      users[username].groupCode = remote.groupCode;
-    }
+    // ── Grupos: sincronizar siempre desde el servidor (si te uniste o
+    // saliste de un grupo desde otro dispositivo, aquí se refleja) ────
+    if (remote.groups !== undefined) users[username].groups = remote.groups;
+    if (remote.activeGroup !== undefined) users[username].activeGroup = remote.activeGroup;
 
-    // ── Monedas: tomar el valor de Firestore, SALVO que este dispositivo
-    // tenga un cambio local todavía sin confirmar guardar (evita perder
-    // monedas ganadas offline por culpa de mala conexión) ──────────────
-    if (remote.coins !== undefined && !hasPendingLocalChange) {
-      users[username].coins = remote.coins;
-    }
+    // ── Perfiles: fusionar cada perfil (monedas/inventario) que venga del
+    // servidor con los que ya tengamos localmente, perfil por perfil ──────
+    if (remote.profiles) {
+      if (!users[username].profiles) users[username].profiles = {};
+      Object.keys(remote.profiles).forEach(function (key) {
+        const remoteProfile = remote.profiles[key];
+        const localProfile = users[username].profiles[key];
 
-    // ── Resto (inventory, email, banned): comparar fechas ─────────────
-    const localUpdated = users[username].updatedAt || 0;
-    const remoteUpdated = remote.updatedAt || 0;
-    if (remoteUpdated > localUpdated && !hasPendingLocalChange) {
-      if (remote.inventory) users[username].inventory = remote.inventory;
-      if (remote.email) users[username].email = remote.email;
-      if (remote.banned !== undefined) users[username].banned = remote.banned;
-      users[username].updatedAt = remoteUpdated;
+        // Si es el perfil ACTIVO ahora mismo y hay un cambio local sin
+        // confirmar todavía, no lo pisamos (evita perder monedas ganadas
+        // offline por mala conexión).
+        const isActiveProfile = key === (users[username].activeGroup || 'solo');
+        if (isActiveProfile && hasPendingLocalChange) return;
+
+        if (!localProfile) {
+          users[username].profiles[key] = remoteProfile;
+          return;
+        }
+        const localUpdated = localProfile.updatedAt || 0;
+        const remoteUpdated = remoteProfile.updatedAt || 0;
+        if (remoteUpdated > localUpdated) {
+          users[username].profiles[key] = remoteProfile;
+        } else if (remoteProfile.ownedSkins) {
+          // Los cosméticos siempre se fusionan (nunca se pisan entre sí)
+          localProfile.ownedSkins = Object.assign({}, localProfile.ownedSkins || {}, remoteProfile.ownedSkins);
+        }
+      });
     }
 
     UserStore.save(users);
@@ -203,16 +230,17 @@ async function pullUserData(username) {
     // Si había un cambio pendiente, intentar subirlo ahora mismo (además
     // del reintento automático cada 15s) para ponerlo al día cuanto antes.
     if (hasPendingLocalChange) {
-      pushUserData(username, users[username]);
+      const key = users[username].activeGroup || 'solo';
+      if (users[username].profiles[key]) pushUserData(username, users[username].profiles[key]);
     }
   } catch (e) {
     console.warn('No se pudo cargar datos remotos del usuario:', e);
   }
 }
 
-// Sincroniza las monedas desde Firestore mientras el jugador está en sesión.
-// Se llama periódicamente (cada 60 s) o al volver al foco para que los cambios
-// del admin (dar/quitar monedas) lleguen sin necesidad de cerrar sesión.
+// Sincroniza las monedas del perfil ACTIVO desde Firestore mientras el
+// jugador está en sesión. Se llama periódicamente para que los cambios del
+// admin (dar/quitar monedas) lleguen sin necesidad de cerrar sesión.
 async function syncCoinsFromFirestore(username) {
   if (!firebaseReady || !db || !username) return;
   try {
@@ -222,17 +250,20 @@ async function syncCoinsFromFirestore(username) {
 
     const doc = await db.collection('users').doc(username).get();
     if (!doc.exists) return;
-    const remoteCoins = doc.data().coins;
-    if (remoteCoins === undefined) return;
+    const key = users[username].activeGroup || 'solo';
+    const remoteProfile = doc.data().profiles && doc.data().profiles[key];
+    if (!remoteProfile || remoteProfile.coins === undefined) return;
 
-    if (users[username].coins === remoteCoins) return; // nada que actualizar
+    if (!users[username].profiles) users[username].profiles = {};
+    if (!users[username].profiles[key]) users[username].profiles[key] = {};
+    if (users[username].profiles[key].coins === remoteProfile.coins) return;
 
-    users[username].coins = remoteCoins;
+    users[username].profiles[key].coins = remoteProfile.coins;
     UserStore.save(users);
 
     // Refrescar el balance visible si la app está en pantalla
     const balanceEl = document.getElementById('balance-amount');
-    if (balanceEl) balanceEl.textContent = remoteCoins;
+    if (balanceEl) balanceEl.textContent = remoteProfile.coins;
   } catch (e) {
     console.warn('No se pudo sincronizar monedas:', e);
   }
