@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Alcohol 365">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=20260820e">
+<link rel="stylesheet" href="css/style.css?v=20260821a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -101,17 +101,25 @@
   <!-- Pantalla tras entrar: topbar + pestañas -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
-      <button type="button" class="topbar-icon-btn tabbar-btn" id="tabbtn-video" data-tab="video" aria-label="Vídeo" style="background:none;border:none;cursor:pointer;padding:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;flex:none;">
-        <span class="tabbar-icon" style="font-size:22px;">📺</span>
-      </button>
-      <button type="button" class="topbar-icon-btn tabbar-btn" id="tabbtn-ranking" data-tab="ranking" aria-label="Ranking" style="background:none;border:none;cursor:pointer;padding:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;flex:none;">
-        <span class="tabbar-icon" style="font-size:22px;">🏆</span>
-      </button>
-      <button type="button" class="news-btn" id="news-btn" aria-label="Novedades">
-        <span class="news-icon">✉️</span>
+      <button type="button" class="hamburger-btn" id="hamburger-btn" aria-label="Menú">☰</button>
+      <div id="active-profile-badge" style="flex:1;text-align:center;color:#f5c518;font-size:12px;font-weight:700;"></div>
+      <div style="width:38px;"></div>
+    </div>
+
+    <!-- Menú lateral (hamburguesa) -->
+    <div id="side-menu-overlay" class="hidden"></div>
+    <div id="side-menu">
+      <div class="avatar-btn" id="avatar-btn" style="width:56px;height:56px;font-size:22px;margin-bottom:10px;"></div>
+      <div id="side-menu-username" style="color:#fff;font-weight:700;font-size:16px;margin-bottom:18px;"></div>
+      <button type="button" class="side-menu-item tabbar-btn" data-tab="video">📺 Vídeo</button>
+      <button type="button" class="side-menu-item tabbar-btn" data-tab="ranking">🏆 Ranking</button>
+      <button type="button" class="side-menu-item" id="sidemenu-mygroups">👥 Mis grupos</button>
+      <button type="button" class="side-menu-item" id="news-btn">
+        <span>✉️ Novedades</span>
         <span class="news-badge hidden" id="news-badge">0</span>
       </button>
-      <div class="avatar-btn" id="avatar-btn"></div>
+      <div class="side-menu-divider"></div>
+      <button type="button" class="side-menu-item" id="sidemenu-logout" style="color:#ff8f8f;">Cerrar sesión</button>
     </div>
 
     <div class="app-content">
@@ -379,11 +387,8 @@
 
         <div id="ranking-group-view" class="hidden">
           <div id="group-no-group">
-            <div class="inventory-title">No perteneces a ningún grupo todavía</div>
-            <button type="button" class="btn" id="group-create-btn">➕ Crear grupo</button>
-            <div style="margin:16px 0 6px;color:#b8a679;font-size:13px;">O únete con un código:</div>
-            <input type="text" id="group-join-input" class="bet-amount-input" placeholder="Código de grupo (ej: AB12CD)" style="text-transform:uppercase;margin-bottom:8px;">
-            <button type="button" class="btn" id="group-join-btn">🔑 Unirme al grupo</button>
+            <div class="inventory-title">No tienes ningún grupo activo ahora mismo</div>
+            <div style="color:#8a7c5a;font-size:12px;margin-bottom:12px;">Ve a "👥 Mis grupos" en el menú ☰ para crear uno o unirte con un código.</div>
           </div>
 
           <div id="group-has-group" class="hidden">
@@ -399,6 +404,26 @@
 
           <div class="spin-result" id="group-msg"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de MIS GRUPOS -->
+  <div id="groups-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back">
+      <button class="back-btn" id="mygroups-back">←</button>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="screen-body ranking-body">
+      <div class="card">
+        <h1>Mis grupos</h1>
+        <div id="mygroups-list"></div>
+
+        <div style="margin:20px 0 6px;color:#b8a679;font-size:13px;">Crear o unirte a otro grupo:</div>
+        <button type="button" class="btn" id="mygroups-create-btn">➕ Crear grupo</button>
+        <input type="text" id="mygroups-join-input" class="bet-amount-input" placeholder="Código de grupo (ej: AB12CD)" style="text-transform:uppercase;margin:10px 0 8px;">
+        <button type="button" class="btn" id="mygroups-join-btn">🔑 Unirme con código</button>
+        <div class="spin-result" id="mygroups-msg"></div>
       </div>
     </div>
   </div>
@@ -456,7 +481,7 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260820d"></script>
+  <script src="js/navigation.js?v=20260821a"></script>
   <script src="js/announcements.js?v=20260820a"></script>
   <script src="js/casino-roulette.js?v=20260820b"></script>
   <script src="js/casino-slots.js?v=20260820b"></script>
@@ -464,11 +489,11 @@
   <script src="js/casino-turtles.js?v=20260820b"></script>
   <script src="js/casino-cosmetics.js?v=20260820c"></script>
   <script src="js/casino-poker.js?v=20260820b"></script>
-  <script src="js/game-bottles.js?v=20260820a"></script>
+  <script src="js/game-bottles.js?v=20260821a"></script>
   <script src="js/ads.js?v=20260820d"></script>
-  <script src="js/account-ranking-auth.js?v=20260820d"></script>
-  <script src="js/groups.js?v=20260821a"></script>
-  <script src="js/admin.js?v=20260820e"></script>
+  <script src="js/account-ranking-auth.js?v=20260821a"></script>
+  <script src="js/groups.js?v=20260821b"></script>
+  <script src="js/admin.js?v=20260821a"></script>
   <script src="js/event.js?v=20260819b"></script>
   <script src="js/support.js?v=20260819"></script>
   <script src="js/steal.js?v=20260820c"></script>
