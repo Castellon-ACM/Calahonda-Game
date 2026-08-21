@@ -6,8 +6,9 @@
 //  como respaldo. El admin puede crear/borrar anuncios desde el panel.
 //
 //  Cada anuncio tiene: { id, date, title, body, cta?, ctaTab? }
-//  El id más alto visto por el jugador se guarda en lastSeenAnnouncement,
-//  así el contador solo cuenta los nuevos.
+//  El id más alto visto por el jugador se guarda en lastSeenAnnouncement
+//  en la RAÍZ del documento de usuario en Firestore, así persiste entre
+//  sesiones y dispositivos.
 // =====================================================================
 
 // Fallback estático (se usa solo si Firestore no responde)
@@ -46,10 +47,41 @@ async function loadAnnouncementsFromFirestore() {
 }
 
 // Llama a esta función justo después de que el usuario haga login
-// (ya se hace desde account-ranking-auth.js con onLoginSuccess)
 async function initAnnouncements() {
   await loadAnnouncementsFromFirestore();
   updateNewsBadge();
+}
+
+// ── Leer y guardar lastSeenAnnouncement ───────────────────────────────
+// Se guarda en la RAÍZ del usuario (localStorage + Firestore) para que
+// persista entre sesiones y dispositivos, independientemente del perfil
+// de grupo activo.
+
+function getLastSeen() {
+  if (!currentUser) return 0;
+  const users = UserStore.load();
+  const u = users[currentUser] || {};
+  return u.lastSeenAnnouncement || 0;
+}
+
+async function saveLastSeen(id) {
+  if (!currentUser) return;
+  // Guardar en localStorage
+  const users = UserStore.load();
+  if (!users[currentUser]) return;
+  users[currentUser].lastSeenAnnouncement = id;
+  UserStore.save(users);
+  // Guardar en Firestore para que persista al cerrar sesión y en otros dispositivos
+  if (typeof db !== 'undefined' && db) {
+    try {
+      await db.collection('users').doc(currentUser).set(
+        { lastSeenAnnouncement: id, updatedAt: Date.now() },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn('[Announcements] No se pudo guardar lastSeenAnnouncement en Firestore:', e);
+    }
+  }
 }
 
 // ── Utilidades ────────────────────────────────────────────────────────
@@ -60,8 +92,7 @@ function latestAnnouncementId() {
 function updateNewsBadge() {
   const badge = document.getElementById('news-badge');
   if (!badge) return;
-  const data = getCurrentUserData();
-  const unseen = latestAnnouncementId() - (data.lastSeenAnnouncement || 0);
+  const unseen = latestAnnouncementId() - getLastSeen();
   if (unseen > 0) {
     badge.textContent = unseen > 9 ? '9+' : String(unseen);
     badge.classList.remove('hidden');
@@ -111,12 +142,10 @@ function openNewsScreen() {
   renderNewsScreen();
   document.getElementById('news-screen').classList.remove('hidden');
 
-  // Marcar todo como visto al abrir el buzón
-  const data = getCurrentUserData();
+  // Marcar todo como visto: guardar en localStorage Y Firestore
   const latest = latestAnnouncementId();
-  if ((data.lastSeenAnnouncement || 0) < latest) {
-    data.lastSeenAnnouncement = latest;
-    saveAndSync(data);
+  if (getLastSeen() < latest) {
+    saveLastSeen(latest);
   }
   updateNewsBadge();
 }
