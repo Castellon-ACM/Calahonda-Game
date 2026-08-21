@@ -1,41 +1,18 @@
-// =====================================================================
-//  SERVICE WORKER — Alcohol 365
-// =====================================================================
-
-const CACHE_VERSION = 'v20260821-5';
+const CACHE_VERSION = 'v20260821-6';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 
 const PRECACHE_URLS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './css/style.css',
-  './css/album.css',
-  './js/firebase-config.js',
-  './js/store.js',
-  './js/navigation.js',
-  './js/game-bottles.js',
-  './js/account-ranking-auth.js',
-  './js/groups.js',
-  './js/admin.js',
-  './js/event.js',
-  './js/support.js',
-  './js/steal.js',
-  './js/casino-roulette.js',
-  './js/casino-slots.js',
-  './js/casino-blackjack.js',
-  './js/casino-turtles.js',
-  './js/casino-cosmetics.js',
-  './js/casino-poker.js',
-  './js/ads.js',
-  './js/notifications.js',
-  './js/gift.js',
-  './js/announcements.js',
-  './js/coin3d.js',
-  './js/bottle3d.js',
-  './js/skins.js',
-  './assets/icon-192.png',
-  './assets/icon-512.png'
+  './', './index.html', './manifest.json',
+  './css/style.css', './css/album.css',
+  './js/firebase-config.js', './js/store.js', './js/navigation.js',
+  './js/game-bottles.js', './js/account-ranking-auth.js',
+  './js/groups.js', './js/admin.js', './js/event.js', './js/support.js',
+  './js/steal.js', './js/casino-roulette.js', './js/casino-slots.js',
+  './js/casino-blackjack.js', './js/casino-turtles.js',
+  './js/casino-cosmetics.js', './js/casino-poker.js', './js/ads.js',
+  './js/notifications.js', './js/gift.js', './js/announcements.js',
+  './js/coin3d.js', './js/bottle3d.js', './js/skins.js',
+  './assets/icon-192.png', './assets/icon-512.png'
 ];
 
 self.addEventListener('install', function (event) {
@@ -53,12 +30,8 @@ self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(
-        keys
-          .filter(function (key) { return key !== CACHE_NAME; })
-          .map(function (key) {
-            console.log('[SW] Borrando caché antigua:', key);
-            return caches.delete(key);
-          })
+        keys.filter(function (key) { return key !== CACHE_NAME; })
+            .map(function (key) { return caches.delete(key); })
       );
     }).then(function () {
       return self.clients.claim();
@@ -76,19 +49,15 @@ self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
-
   event.respondWith(
     caches.match(event.request).then(function (cached) {
       const fetched = fetch(event.request).then(function (response) {
         if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(event.request, clone);
-          });
+          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
         }
         return response;
       }).catch(function () { return cached; });
-
       return cached || fetched;
     })
   );
