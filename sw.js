@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v20260821-8';
+const CACHE_VERSION = 'v20260821-9';
 const CACHE_NAME = 'alcohol365-' + CACHE_VERSION;
 const PRECACHE_URLS = [
   './', './index.html', './manifest.json',
