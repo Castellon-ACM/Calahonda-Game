@@ -12,38 +12,30 @@
 <meta name="apple-mobile-web-app-title" content="Alcohol 365">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=20260821c">
+<link rel="stylesheet" href="css/style.css?v=20260821d">
 <link rel="stylesheet" href="css/album.css?v=20260821a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js?v=20260821b"></script>
-
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
-      console.log('[App] SW registrado:', reg.scope);
       reg.update();
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') reg.update();
       });
-    }).catch(function (err) {
-      console.warn('[App] SW error:', err);
-    });
+    }).catch(function (err) { console.warn('[App] SW error:', err); });
     navigator.serviceWorker.addEventListener('message', function (event) {
-      if (event.data && event.data.type === 'SW_UPDATED') {
-        console.log('[App] Nueva versión detectada:', event.data.version, '— recargando...');
-        window.location.reload();
-      }
+      if (event.data && event.data.type === 'SW_UPDATED') window.location.reload();
     });
   }
 </script>
 </head>
 <body>
 
-
-  <!-- Pantalla LOGIN -->
+  <!-- LOGIN -->
   <div id="login-screen" class="screen">
     <div class="coin-wrap">
       <canvas id="coin-login" width="176" height="176" style="width:176px;height:176px;"></canvas>
@@ -51,24 +43,16 @@
     <div class="card">
       <h1>Iniciar sesión</h1>
       <form id="login-form">
-        <div class="field">
-          <label for="login-user">Usuario</label>
-          <input type="text" id="login-user" placeholder="tu usuario" required>
-        </div>
-        <div class="field">
-          <label for="login-pass">Contraseña</label>
-          <input type="password" id="login-pass" placeholder="••••••••" required>
-        </div>
+        <div class="field"><label for="login-user">Usuario</label><input type="text" id="login-user" placeholder="tu usuario" required></div>
+        <div class="field"><label for="login-pass">Contraseña</label><input type="password" id="login-pass" placeholder="••••••••" required></div>
         <button type="submit" class="btn">Entrar</button>
         <div class="error" id="login-error">Rellena usuario y contraseña</div>
       </form>
-      <div class="switch-text">
-        ¿No tienes cuenta? <a href="#" id="go-register">Regístrate</a>
-      </div>
+      <div class="switch-text">¿No tienes cuenta? <a href="#" id="go-register">Regístrate</a></div>
     </div>
   </div>
 
-  <!-- Pantalla REGISTRO -->
+  <!-- REGISTRO -->
   <div id="register-screen" class="screen hidden">
     <div class="coin-wrap">
       <canvas id="coin-register" width="120" height="120" style="width:120px;height:120px;"></canvas>
@@ -76,28 +60,17 @@
     <div class="card">
       <h1>Crear cuenta</h1>
       <form id="register-form">
-        <div class="field">
-          <label for="reg-user">Usuario</label>
-          <input type="text" id="reg-user" placeholder="elige un usuario" required>
-        </div>
-        <div class="field">
-          <label for="reg-email">Email</label>
-          <input type="email" id="reg-email" placeholder="tu@email.com" required>
-        </div>
-        <div class="field">
-          <label for="reg-pass">Contraseña</label>
-          <input type="password" id="reg-pass" placeholder="••••••••" required>
-        </div>
+        <div class="field"><label for="reg-user">Usuario</label><input type="text" id="reg-user" placeholder="elige un usuario" required></div>
+        <div class="field"><label for="reg-email">Email</label><input type="email" id="reg-email" placeholder="tu@email.com" required></div>
+        <div class="field"><label for="reg-pass">Contraseña</label><input type="password" id="reg-pass" placeholder="••••••••" required></div>
         <button type="submit" class="btn">Registrarme</button>
         <div class="error" id="register-error">Rellena todos los campos</div>
       </form>
-      <div class="switch-text">
-        ¿Ya tienes cuenta? <a href="#" id="go-login">Inicia sesión</a>
-      </div>
+      <div class="switch-text">¿Ya tienes cuenta? <a href="#" id="go-login">Inicia sesión</a></div>
     </div>
   </div>
 
-  <!-- Pantalla principal -->
+  <!-- APP PRINCIPAL -->
   <div id="app-screen" class="screen screen-with-topbar hidden">
     <div class="topbar">
       <button type="button" class="hamburger-btn" id="hamburger-btn" aria-label="Menú">☰</button>
@@ -113,6 +86,10 @@
       <button type="button" class="side-menu-item tabbar-btn" data-tab="video">📺 Vídeo</button>
       <button type="button" class="side-menu-item tabbar-btn" data-tab="ranking">🏆 Ranking</button>
       <button type="button" class="side-menu-item" id="sidemenu-mygroups">👥 Mis grupos</button>
+      <button type="button" class="side-menu-item" id="sidemenu-auction" style="color:#00d4ff;font-weight:700;">
+        ⚡ Subastas
+        <span style="background:linear-gradient(135deg,#00d4ff,#0040ff);color:#fff;font-size:9px;font-weight:800;border-radius:5px;padding:1px 5px;margin-left:6px;letter-spacing:0.5px;">NUEVO</span>
+      </button>
       <button type="button" class="side-menu-item" id="sidemenu-support">☕ Apoyo</button>
       <button type="button" class="side-menu-item" id="news-btn">
         <span>✉️ Novedades</span>
@@ -123,7 +100,7 @@
     </div>
 
     <div class="app-content">
-      <!-- PESTAÑA VÍDEO -->
+      <!-- VÍDEO -->
       <div id="tab-video" class="app-tab hidden">
         <div class="game">
           <div class="inventory-title">Gana monedas gratis</div>
@@ -132,7 +109,7 @@
         </div>
       </div>
 
-      <!-- PESTAÑA INICIO -->
+      <!-- INICIO -->
       <div id="tab-home" class="app-tab">
         <div class="game">
           <div class="balance-card">
@@ -142,12 +119,10 @@
             </div>
             <button type="button" class="btn claim-btn" id="claim-btn">Reclamar 200 monedas</button>
           </div>
-
           <div class="roulette-wrap">
             <div class="roulette-pointer"></div>
             <div class="roulette-track" id="roulette-track"></div>
           </div>
-
           <div class="spin-mult-row">
             <button type="button" class="spin-mult-btn selected" data-mult="1">x1</button>
             <button type="button" class="spin-mult-btn" data-mult="3">x3</button>
@@ -156,7 +131,6 @@
           </div>
           <button type="button" class="btn spin-btn" id="spin-btn">Girar ruleta (10 🪙)</button>
           <div class="spin-result" id="spin-result"></div>
-
           <div class="inventory-title">Ruleta de cosméticos</div>
           <div class="roulette-wrap">
             <div class="roulette-pointer"></div>
@@ -172,16 +146,12 @@
         </div>
       </div>
 
-      <!-- PESTAÑA CASINO -->
+      <!-- CASINO -->
       <div id="tab-casino" class="app-tab hidden">
         <div class="game">
           <div class="balance-card">
-            <div class="balance-left">
-              <div class="balance-coin"></div>
-              <div class="balance-amount" id="casino-balance-amount">0</div>
-            </div>
+            <div class="balance-left"><div class="balance-coin"></div><div class="balance-amount" id="casino-balance-amount">0</div></div>
           </div>
-
           <div id="casino-menu" class="casino-menu-grid">
             <div class="casino-game-card" data-game="roulette"><div class="icon">🎡</div><div class="title">Ruleta</div></div>
             <div class="casino-game-card" data-game="slots"><div class="icon">🎰</div><div class="title">Tragaperras</div></div>
@@ -189,15 +159,9 @@
             <div class="casino-game-card" data-game="turtles"><div class="icon">🐢</div><div class="title">Carreras de tortugas</div></div>
             <div class="casino-game-card" data-game="poker"><div class="icon">♠️</div><div class="title">Póker multijugador</div></div>
           </div>
-
           <div id="casino-game-roulette" class="casino-subgame hidden">
             <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
-            <div class="wheel-wrap" id="wheel-wrap">
-              <div class="wheel-pointer"></div>
-              <div class="wheel" id="wheel"></div>
-              <div class="ball-track" id="ball-track"><div class="ball"></div></div>
-              <div class="wheel-hub"></div>
-            </div>
+            <div class="wheel-wrap" id="wheel-wrap"><div class="wheel-pointer"></div><div class="wheel" id="wheel"></div><div class="ball-track" id="ball-track"><div class="ball"></div></div><div class="wheel-hub"></div></div>
             <div class="wheel-result-number" id="wheel-result-number"></div>
             <div class="roulette-history" id="roulette-history"></div>
             <div class="chip-row" id="chip-row">
@@ -206,7 +170,7 @@
               <button type="button" class="chip chip-100" data-amount="100">100</button>
               <button type="button" class="chip chip-500" data-amount="500">500</button>
               <button type="button" class="chip chip-max" id="chip-max">MAX</button>
-              <button type="button" class="chip chip-eraser" id="chip-eraser" title="Borrar apuesta">🧹</button>
+              <button type="button" class="chip chip-eraser" id="chip-eraser">🧹</button>
             </div>
             <input type="number" id="bet-amount" min="1" placeholder="O escribe otra cantidad" class="bet-amount-input">
             <div class="roulette-table" id="roulette-table"></div>
@@ -215,83 +179,43 @@
             <button type="button" class="btn repeat-bet-btn" id="repeat-bet-btn">🔁 Repetir apuesta anterior</button>
             <div class="spin-result" id="casino-result"></div>
           </div>
-
           <div id="casino-game-slots" class="casino-subgame hidden">
             <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
             <div class="slots-win-banner" id="slots-win-banner"></div>
-            <div class="slots-machine">
-              <div class="slot-reel" id="slot-reel-0">🍒</div>
-              <div class="slot-reel" id="slot-reel-1">🍒</div>
-              <div class="slot-reel" id="slot-reel-2">🍒</div>
-            </div>
+            <div class="slots-machine"><div class="slot-reel" id="slot-reel-0">🍒</div><div class="slot-reel" id="slot-reel-1">🍒</div><div class="slot-reel" id="slot-reel-2">🍒</div></div>
             <div class="spin-result" id="slots-result"></div>
-            <div class="chip-row">
-              <button type="button" class="chip chip-10 slots-chip selected" data-amount="10">10</button>
-              <button type="button" class="chip chip-50 slots-chip" data-amount="50">50</button>
-              <button type="button" class="chip chip-100 slots-chip" data-amount="100">100</button>
-              <button type="button" class="chip chip-500 slots-chip" data-amount="500">500</button>
-            </div>
+            <div class="chip-row"><button type="button" class="chip chip-10 slots-chip selected" data-amount="10">10</button><button type="button" class="chip chip-50 slots-chip" data-amount="50">50</button><button type="button" class="chip chip-100 slots-chip" data-amount="100">100</button><button type="button" class="chip chip-500 slots-chip" data-amount="500">500</button></div>
             <input type="number" id="slots-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
             <button type="button" class="btn spin-btn" id="slots-spin-btn">Tirar de la palanca</button>
-            <div class="slots-paytable">
-              <div>🍒🍒🍒 x4 · 🍋🍋🍋 x6 · 🔔🔔🔔 x10</div>
-              <div>⭐⭐⭐ x16 · 💎💎💎 x40 · 7️⃣7️⃣7️⃣ x100</div>
-              <div>Dos iguales: recuperas la apuesta</div>
-            </div>
+            <div class="slots-paytable"><div>🍒🍒🍒 x4 · 🍋🍋🍋 x6 · 🔔🔔🔔 x10</div><div>⭐⭐⭐ x16 · 💎💎💎 x40 · 7️⃣7️⃣7️⃣ x100</div><div>Dos iguales: recuperas la apuesta</div></div>
           </div>
-
           <div id="casino-game-blackjack" class="casino-subgame hidden">
             <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
-            <div class="bj-label">Crupier</div>
-            <div class="bj-hand" id="bj-dealer-hand"></div>
-            <div class="bj-value" id="bj-dealer-value"></div>
-            <div class="bj-label">Tu mano</div>
-            <div class="bj-hand" id="bj-player-hand"></div>
-            <div class="bj-value" id="bj-player-value"></div>
+            <div class="bj-label">Crupier</div><div class="bj-hand" id="bj-dealer-hand"></div><div class="bj-value" id="bj-dealer-value"></div>
+            <div class="bj-label">Tu mano</div><div class="bj-hand" id="bj-player-hand"></div><div class="bj-value" id="bj-player-value"></div>
             <div class="spin-result" id="bj-result"></div>
             <div id="bj-bet-controls">
-              <div class="chip-row">
-                <button type="button" class="chip chip-10 bj-chip selected" data-amount="10">10</button>
-                <button type="button" class="chip chip-50 bj-chip" data-amount="50">50</button>
-                <button type="button" class="chip chip-100 bj-chip" data-amount="100">100</button>
-                <button type="button" class="chip chip-500 bj-chip" data-amount="500">500</button>
-              </div>
+              <div class="chip-row"><button type="button" class="chip chip-10 bj-chip selected" data-amount="10">10</button><button type="button" class="chip chip-50 bj-chip" data-amount="50">50</button><button type="button" class="chip chip-100 bj-chip" data-amount="100">100</button><button type="button" class="chip chip-500 bj-chip" data-amount="500">500</button></div>
               <input type="number" id="bj-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
               <button type="button" class="btn spin-btn" id="bj-deal-btn">Repartir cartas</button>
             </div>
-            <div id="bj-actions" class="bj-actions-row hidden">
-              <button type="button" class="btn bj-action-btn" id="bj-hit-btn">Pedir carta</button>
-              <button type="button" class="btn bj-action-btn bj-stand-btn" id="bj-stand-btn">Plantarse</button>
-            </div>
+            <div id="bj-actions" class="bj-actions-row hidden"><button type="button" class="btn bj-action-btn" id="bj-hit-btn">Pedir carta</button><button type="button" class="btn bj-action-btn bj-stand-btn" id="bj-stand-btn">Plantarse</button></div>
           </div>
-
           <div id="casino-game-turtles" class="casino-subgame hidden">
             <button type="button" class="back-to-menu-btn" data-back>← Volver</button>
-            <div class="turtle-track-wrap" id="turtle-track-wrap"></div>
-            <div class="spin-result" id="turtle-result"></div>
-            <div class="turtle-select-row" id="turtle-select-row"></div>
-            <div class="chip-row">
-              <button type="button" class="chip chip-10 turtle-chip selected" data-amount="10">10</button>
-              <button type="button" class="chip chip-50 turtle-chip" data-amount="50">50</button>
-              <button type="button" class="chip chip-100 turtle-chip" data-amount="100">100</button>
-              <button type="button" class="chip chip-500 turtle-chip" data-amount="500">500</button>
-            </div>
+            <div class="turtle-track-wrap" id="turtle-track-wrap"></div><div class="spin-result" id="turtle-result"></div><div class="turtle-select-row" id="turtle-select-row"></div>
+            <div class="chip-row"><button type="button" class="chip chip-10 turtle-chip selected" data-amount="10">10</button><button type="button" class="chip chip-50 turtle-chip" data-amount="50">50</button><button type="button" class="chip chip-100 turtle-chip" data-amount="100">100</button><button type="button" class="chip chip-500 turtle-chip" data-amount="500">500</button></div>
             <input type="number" id="turtle-bet-amount" min="1" placeholder="Cantidad a apostar" class="bet-amount-input" value="10">
             <button type="button" class="btn spin-btn" id="turtle-race-btn">Apostar y correr (x3)</button>
           </div>
-
           <div id="casino-game-poker" class="casino-subgame hidden"></div>
         </div>
       </div>
 
-      <!-- PESTAÑA EVENTO -->
-      <div id="tab-event" class="app-tab hidden">
-        <div class="game">
-          <div id="event-content"></div>
-        </div>
-      </div>
+      <!-- EVENTO -->
+      <div id="tab-event" class="app-tab hidden"><div class="game"><div id="event-content"></div></div></div>
 
-      <!-- PESTAÑA ÁLBUM (antes era apoyo) -->
+      <!-- ÁLBUM -->
       <div id="tab-support" class="app-tab hidden">
         <div class="game">
           <div class="inventory-title">📚 Tu álbum de botellas</div>
@@ -299,178 +223,118 @@
         </div>
       </div>
 
-      <!-- PESTAÑA CHAT -->
+      <!-- CHAT -->
       <div id="tab-chat" class="app-tab hidden"></div>
     </div>
 
     <div class="app-tabbar">
-      <button class="tabbar-btn active" id="tabbtn-home" data-tab="home">
-        <span class="tabbar-icon">🏠</span><span>Inicio</span>
-      </button>
-      <button class="tabbar-btn" id="tabbtn-casino" data-tab="casino">
-        <span class="tabbar-icon">🎰</span><span>Casino</span>
-      </button>
-      <button class="tabbar-btn hidden" id="tabbtn-event" data-tab="event">
-        <span class="tabbar-icon">🃏</span><span>Evento</span>
-      </button>
-      <button class="tabbar-btn" id="tabbtn-chat" data-tab="chat">
-        <span class="tabbar-icon">💬</span><span>Chat</span>
-      </button>
-      <button class="tabbar-btn" id="tabbtn-support" data-tab="support">
-        <span class="tabbar-icon">📚</span><span>Álbum</span>
-      </button>
+      <button class="tabbar-btn active" id="tabbtn-home" data-tab="home"><span class="tabbar-icon">🏠</span><span>Inicio</span></button>
+      <button class="tabbar-btn" id="tabbtn-casino" data-tab="casino"><span class="tabbar-icon">🎰</span><span>Casino</span></button>
+      <button class="tabbar-btn hidden" id="tabbtn-event" data-tab="event"><span class="tabbar-icon">🃏</span><span>Evento</span></button>
+      <button class="tabbar-btn" id="tabbtn-chat" data-tab="chat"><span class="tabbar-icon">💬</span><span>Chat</span></button>
+      <button class="tabbar-btn" id="tabbtn-support" data-tab="support"><span class="tabbar-icon">📚</span><span>Álbum</span></button>
     </div>
   </div>
 
-  <!-- Pantalla de CUENTA -->
+  <!-- CUENTA -->
   <div id="account-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="account-back">←</button>
-      <div class="avatar-btn" id="avatar-btn-account"></div>
-    </div>
-    <div class="screen-body">
-      <div class="card">
-        <h1>Mi cuenta</h1>
-        <div class="field">
-          <label for="account-user">Usuario</label>
-          <input type="text" id="account-user">
-        </div>
-        <div class="field">
-          <label for="account-email">Email</label>
-          <input type="email" id="account-email">
-        </div>
-        <div class="field">
-          <label for="account-pass">Nueva contraseña</label>
-          <input type="password" id="account-pass" placeholder="Deja en blanco para no cambiarla">
-        </div>
-        <button type="button" class="btn" id="account-save">Guardar cambios</button>
-        <div class="error" id="account-error"></div>
-        <div class="success-msg" id="account-success">Cambios guardados</div>
-        <button type="button" class="btn logout-btn" id="account-logout">Cerrar sesión</button>
-
-        <div class="account-stats">
-          <div class="account-stat-row">
-            <span>Tus monedas</span>
-            <span id="account-coins-display">0</span>
-          </div>
-        </div>
-
-        <button type="button" class="btn ranking-btn" id="view-ranking-btn">Ver ranking de jugadores</button>
-      </div>
-    </div>
+    <div class="topbar with-back"><button class="back-btn" id="account-back">←</button><div class="avatar-btn" id="avatar-btn-account"></div></div>
+    <div class="screen-body"><div class="card">
+      <h1>Mi cuenta</h1>
+      <div class="field"><label for="account-user">Usuario</label><input type="text" id="account-user"></div>
+      <div class="field"><label for="account-email">Email</label><input type="email" id="account-email"></div>
+      <div class="field"><label for="account-pass">Nueva contraseña</label><input type="password" id="account-pass" placeholder="Deja en blanco para no cambiarla"></div>
+      <button type="button" class="btn" id="account-save">Guardar cambios</button>
+      <div class="error" id="account-error"></div>
+      <div class="success-msg" id="account-success">Cambios guardados</div>
+      <button type="button" class="btn logout-btn" id="account-logout">Cerrar sesión</button>
+      <div class="account-stats"><div class="account-stat-row"><span>Tus monedas</span><span id="account-coins-display">0</span></div></div>
+      <button type="button" class="btn ranking-btn" id="view-ranking-btn">Ver ranking de jugadores</button>
+    </div></div>
   </div>
 
-  <!-- Pantalla de RANKING -->
+  <!-- RANKING -->
   <div id="ranking-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="ranking-back">←</button>
-      <div class="avatar-btn" id="avatar-btn-ranking"></div>
-    </div>
-    <div class="screen-body ranking-body">
-      <div class="card">
-        <h1>Ranking de jugadores</h1>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button type="button" class="spin-mult-btn selected" id="ranking-toggle-global" style="flex:1;">🌍 Global</button>
-          <button type="button" class="spin-mult-btn" id="ranking-toggle-group" style="flex:1;">👥 Mi grupo</button>
-        </div>
-        <div id="ranking-global-view">
-          <input type="text" id="ranking-search" class="bet-amount-input" placeholder="🔍 Buscar jugador..." style="margin-bottom:14px;">
-          <div id="ranking-list"></div>
-        </div>
-        <div id="ranking-group-view" class="hidden">
-          <div id="group-no-group">
-            <div class="inventory-title">No tienes ningún grupo activo ahora mismo</div>
-            <div style="color:#8a7c5a;font-size:12px;margin-bottom:12px;">Ve a "👥 Mis grupos" en el menú ☰ para crear uno o unirte con un código.</div>
-          </div>
-          <div id="group-has-group" class="hidden">
-            <div style="background:#1a1505;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #3a2c1455;">
-              <div id="group-name" style="color:#f5c518;font-weight:700;font-size:16px;margin-bottom:6px;"></div>
-              <div style="color:#b8a679;font-size:12px;margin-bottom:12px;">
-                Código para invitar: <b id="group-code-display" style="color:#fff;letter-spacing:2px;font-size:14px;"></b>
-              </div>
-              <button type="button" class="btn logout-btn" id="group-leave-btn" style="margin-top:0;">Salir del grupo</button>
-            </div>
-            <div id="group-ranking-list"></div>
-          </div>
-          <div class="spin-result" id="group-msg"></div>
-        </div>
+    <div class="topbar with-back"><button class="back-btn" id="ranking-back">←</button><div class="avatar-btn" id="avatar-btn-ranking"></div></div>
+    <div class="screen-body ranking-body"><div class="card">
+      <h1>Ranking de jugadores</h1>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button type="button" class="spin-mult-btn selected" id="ranking-toggle-global" style="flex:1;">🌍 Global</button>
+        <button type="button" class="spin-mult-btn" id="ranking-toggle-group" style="flex:1;">👥 Mi grupo</button>
       </div>
-    </div>
+      <div id="ranking-global-view">
+        <input type="text" id="ranking-search" class="bet-amount-input" placeholder="🔍 Buscar jugador..." style="margin-bottom:14px;">
+        <div id="ranking-list"></div>
+      </div>
+      <div id="ranking-group-view" class="hidden">
+        <div id="group-no-group"><div class="inventory-title">No tienes ningún grupo activo ahora mismo</div><div style="color:#8a7c5a;font-size:12px;margin-bottom:12px;">Ve a "👥 Mis grupos" en el menú ☰ para crear uno o unirte con un código.</div></div>
+        <div id="group-has-group" class="hidden">
+          <div style="background:#1a1505;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #3a2c1455;">
+            <div id="group-name" style="color:#f5c518;font-weight:700;font-size:16px;margin-bottom:6px;"></div>
+            <div style="color:#b8a679;font-size:12px;margin-bottom:12px;">Código: <b id="group-code-display" style="color:#fff;letter-spacing:2px;font-size:14px;"></b></div>
+            <button type="button" class="btn logout-btn" id="group-leave-btn" style="margin-top:0;">Salir del grupo</button>
+          </div>
+          <div id="group-ranking-list"></div>
+        </div>
+        <div class="spin-result" id="group-msg"></div>
+      </div>
+    </div></div>
   </div>
 
-  <!-- Pantalla de MIS GRUPOS -->
+  <!-- MIS GRUPOS -->
   <div id="groups-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="mygroups-back">←</button>
-      <div style="width:38px;"></div>
-    </div>
-    <div class="screen-body ranking-body">
-      <div class="card">
-        <h1>Mis grupos</h1>
-        <div id="mygroups-list"></div>
-        <div style="margin:20px 0 6px;color:#b8a679;font-size:13px;">Crear o unirte a otro grupo:</div>
-        <button type="button" class="btn" id="mygroups-create-btn">➕ Crear grupo</button>
-        <input type="text" id="mygroups-join-input" class="bet-amount-input" placeholder="Código de grupo (ej: AB12CD)" style="text-transform:uppercase;margin:10px 0 8px;">
-        <button type="button" class="btn" id="mygroups-join-btn">🔑 Unirme con código</button>
-        <div class="spin-result" id="mygroups-msg"></div>
-      </div>
-    </div>
+    <div class="topbar with-back"><button class="back-btn" id="mygroups-back">←</button><div style="width:38px;"></div></div>
+    <div class="screen-body ranking-body"><div class="card">
+      <h1>Mis grupos</h1>
+      <div id="mygroups-list"></div>
+      <div style="margin:20px 0 6px;color:#b8a679;font-size:13px;">Crear o unirte a otro grupo:</div>
+      <button type="button" class="btn" id="mygroups-create-btn">➕ Crear grupo</button>
+      <input type="text" id="mygroups-join-input" class="bet-amount-input" placeholder="Código de grupo (ej: AB12CD)" style="text-transform:uppercase;margin:10px 0 8px;">
+      <button type="button" class="btn" id="mygroups-join-btn">🔑 Unirme con código</button>
+      <div class="spin-result" id="mygroups-msg"></div>
+    </div></div>
   </div>
 
-  <!-- Pantalla de APOYO (abierta desde el menú hamburguesa) -->
+  <!-- APOYO -->
   <div id="support-screen" class="screen screen-with-topbar hidden">
+    <div class="topbar with-back"><button class="back-btn" id="support-back">←</button><div style="width:38px;"></div></div>
+    <div class="screen-body ranking-body"><div class="card"><div id="support-content"></div></div></div>
+  </div>
+
+  <!-- SUBASTA -->
+  <div id="auction-screen" class="screen screen-with-topbar hidden">
     <div class="topbar with-back">
-      <button class="back-btn" id="support-back">←</button>
+      <button class="back-btn" id="auction-back">←</button>
+      <span style="color:#00d4ff;font-weight:800;font-size:14px;">⚡ Subastas</span>
       <div style="width:38px;"></div>
     </div>
     <div class="screen-body ranking-body">
-      <div class="card">
-        <div id="support-content"></div>
+      <div class="card" style="max-width:100%;background:linear-gradient(180deg,#0a1220,#0d0a05);border-color:#00b4ff44;">
+        <div id="auction-content"></div>
       </div>
     </div>
   </div>
 
-  <!-- Pantalla de PERFIL VISITADO -->
+  <!-- PERFIL VISITADO -->
   <div id="visitor-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="visitor-back">←</button>
-      <div class="avatar-btn" id="avatar-btn-visitor"></div>
-    </div>
-    <div class="screen-body ranking-body">
-      <div class="card">
-        <h1 id="visitor-title">Colección</h1>
-        <div class="inventory-grid" id="visitor-inventory-grid"></div>
-      </div>
-    </div>
+    <div class="topbar with-back"><button class="back-btn" id="visitor-back">←</button><div class="avatar-btn" id="avatar-btn-visitor"></div></div>
+    <div class="screen-body ranking-body"><div class="card"><h1 id="visitor-title">Colección</h1><div class="inventory-grid" id="visitor-inventory-grid"></div></div></div>
   </div>
 
-  <!-- Pantalla de NOVEDADES -->
+  <!-- NOVEDADES -->
   <div id="news-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="news-back">←</button>
-      <div class="avatar-btn" id="avatar-btn-news"></div>
-    </div>
-    <div class="screen-body ranking-body">
-      <div class="card">
-        <h1>Novedades</h1>
-        <div id="news-list"></div>
-      </div>
-    </div>
+    <div class="topbar with-back"><button class="back-btn" id="news-back">←</button><div class="avatar-btn" id="avatar-btn-news"></div></div>
+    <div class="screen-body ranking-body"><div class="card"><h1>Novedades</h1><div id="news-list"></div></div></div>
   </div>
 
-  <!-- Pantalla de DETALLE 3D DE BOTELLA -->
+  <!-- DETALLE 3D BOTELLA -->
   <div id="bottle-detail-screen" class="screen screen-with-topbar hidden">
-    <div class="topbar with-back">
-      <button class="back-btn" id="bottle-detail-back">←</button>
-      <div style="width:38px;"></div>
-    </div>
+    <div class="topbar with-back"><button class="back-btn" id="bottle-detail-back">←</button><div style="width:38px;"></div></div>
     <div class="screen-body">
       <div id="bottle-detail-title" class="bottle-detail-title"></div>
       <canvas id="bottle-3d-canvas" width="260" height="320" style="width:260px;height:320px;touch-action:none;"></canvas>
       <div id="bottle-detail-level" class="bottle-detail-level"></div>
-      <div class="bottle-progress-wrap bottle-detail-bar">
-        <div class="bottle-progress-fill" id="bottle-detail-fill"></div>
-      </div>
+      <div class="bottle-progress-wrap bottle-detail-bar"><div class="bottle-progress-fill" id="bottle-detail-fill"></div></div>
       <div id="bottle-detail-progress-label" class="bottle-detail-progress-label"></div>
       <div class="bottle-detail-hint">Arrastra para girarla</div>
       <div class="skin-title">Viste tu botella</div>
@@ -483,15 +347,15 @@
   <script src="js/bottle3d.js?v=20260819"></script>
   <script src="js/skins.js?v=20260819b"></script>
   <script src="js/store.js?v=20260819"></script>
-  <script src="js/navigation.js?v=20260821b"></script>
-  <script src="js/announcements.js?v=20260821a"></script>
+  <script src="js/navigation.js?v=20260821c"></script>
+  <script src="js/announcements.js?v=20260821b"></script>
   <script src="js/casino-roulette.js?v=20260820b"></script>
   <script src="js/casino-slots.js?v=20260820b"></script>
   <script src="js/casino-blackjack.js?v=20260820b"></script>
   <script src="js/casino-turtles.js?v=20260820b"></script>
   <script src="js/casino-cosmetics.js?v=20260820c"></script>
   <script src="js/casino-poker.js?v=20260820b"></script>
-  <script src="js/game-bottles.js?v=20260821c"></script>
+  <script src="js/game-bottles.js?v=20260821d"></script>
   <script src="js/ads.js?v=20260820d"></script>
   <script src="js/account-ranking-auth.js?v=20260821b"></script>
   <script src="js/groups.js?v=20260821c"></script>
@@ -502,6 +366,6 @@
   <script src="js/notifications.js?v=20260820a"></script>
   <script src="js/gift.js?v=20260820a"></script>
   <script src="js/chat.js?v=20260820a"></script>
-
+  <script src="js/auction.js?v=20260821a"></script>
 </body>
 </html>
