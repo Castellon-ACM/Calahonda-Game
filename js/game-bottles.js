@@ -81,35 +81,98 @@
       return { level: level, nextThreshold: nextThreshold, pct: pct };
     }
 
+    // =====================================================================
+    //  CUENTAS SEPARADAS POR GRUPO
+    //  Cada jugador tiene un "perfil" independiente (monedas + colección
+    //  propias) por cada grupo al que pertenece, más un perfil "solo" para
+    //  cuando juega sin ningún grupo activo. Solo un perfil está "activo" a
+    //  la vez (data.activeGroup), y es el que se lee/guarda en cada momento.
+    // =====================================================================
+    function ensureProfileDefaults(profile) {
+      profile = profile || {};
+      if (typeof profile.coins !== 'number') profile.coins = 0;
+      if (!profile.inventory) profile.inventory = {};
+      if (!profile.skins) profile.skins = {};
+      if (!profile.ownedSkins) profile.ownedSkins = {};
+      if (profile.lastClaim === undefined) profile.lastClaim = null;
+      if (!profile.rouletteHistory) profile.rouletteHistory = [];
+      return profile;
+    }
+
     function ensureUserDefaults(username, data) {
       data = data || {};
-      if (typeof data.coins !== 'number') data.coins = 0;
-      if (!data.inventory) data.inventory = {};
-      if (!data.skins) data.skins = {};
-      if (!data.ownedSkins) data.ownedSkins = {};
-      if (data.lastClaim === undefined) data.lastClaim = null;
       if (typeof data.lastSeenAnnouncement !== 'number') data.lastSeenAnnouncement = 0;
+      if (!data.groups) data.groups = [];
+      if (data.activeGroup === undefined) data.activeGroup = null;
+      if (!data.profiles) data.profiles = {};
+
+      // Migración: cuentas de antes de que existieran los grupos guardaban
+      // las monedas/inventario "sueltos" en el propio usuario. Los movemos
+      // a su perfil "solo" para no perder nada.
+      if (data.coins !== undefined || data.inventory !== undefined) {
+        if (!data.profiles.solo) {
+          data.profiles.solo = ensureProfileDefaults({
+            coins: data.coins,
+            inventory: data.inventory,
+            skins: data.skins,
+            ownedSkins: data.ownedSkins,
+            lastClaim: data.lastClaim,
+            rouletteHistory: data.rouletteHistory
+          });
+        }
+        delete data.coins;
+        delete data.inventory;
+        delete data.skins;
+        delete data.ownedSkins;
+        delete data.lastClaim;
+        delete data.rouletteHistory;
+      }
+
+      if (!data.profiles.solo) data.profiles.solo = ensureProfileDefaults({});
+
+      // Si el grupo activo ya no está en la lista de grupos (p.ej. saliste
+      // desde otro dispositivo), volvemos al perfil "solo".
+      if (data.activeGroup && data.groups.indexOf(data.activeGroup) === -1) {
+        data.activeGroup = null;
+      }
+
+      const key = data.activeGroup || 'solo';
+      data.profiles[key] = ensureProfileDefaults(data.profiles[key]);
+
       return data;
     }
 
+    // Clave del perfil actualmente activo ('solo' o el código de un grupo)
+    function activeProfileKey() {
+      const users = UserStore.load();
+      const u = users[currentUser];
+      return (u && u.activeGroup) || 'solo';
+    }
+
+    // Devuelve el PERFIL activo (monedas + inventario de ese grupo/solo).
+    // Es lo que usan todos los juegos (casino, ruleta, blackjack, etc.).
     function getCurrentUserData() {
       const users = UserStore.load();
-      const data = ensureUserDefaults(currentUser, users[currentUser]);
-      users[currentUser] = data;
+      const userData = ensureUserDefaults(currentUser, users[currentUser]);
+      users[currentUser] = userData;
       UserStore.save(users);
-      return data;
+      const key = userData.activeGroup || 'solo';
+      return userData.profiles[key];
     }
 
-    function saveCurrentUserData(data) {
+    function saveCurrentUserData(profileData) {
       const users = UserStore.load();
-      users[currentUser] = data;
+      if (!users[currentUser]) return;
+      const key = users[currentUser].activeGroup || 'solo';
+      profileData.updatedAt = Date.now();
+      users[currentUser].profiles[key] = profileData;
       users[currentUser].updatedAt = Date.now();
       UserStore.save(users);
     }
 
-    function saveAndSync(data) {
-      saveCurrentUserData(data);
-      pushUserData(currentUser, data);
+    function saveAndSync(profileData) {
+      saveCurrentUserData(profileData);
+      pushUserData(currentUser, profileData);
     }
 
     // Devuelve true si el jugador puede reclamar.
@@ -236,7 +299,11 @@
       const data = getCurrentUserData();
       document.getElementById('balance-amount').textContent = data.coins;
       renderInventory(data.inventory);
-      pushToLeaderboard(currentUser, data.inventory);
+      // El ranking GLOBAL siempre refleja el perfil "solo" (fuera de grupos),
+      // nunca el de un grupo concreto — para eso está el ranking de grupo.
+      if (activeProfileKey() === 'solo') {
+        pushToLeaderboard(currentUser, data.inventory);
+      }
       pushUserData(currentUser, data);
       updateClaimButton();
       updateSpinButtonLabel();
@@ -252,6 +319,7 @@
       checkUserNotifications(currentUser);
       // Actualizar el contador de novedades sin leer
       updateNewsBadge();
+      if (typeof updateActiveProfileBadge === 'function') updateActiveProfileBadge();
     }
 
     function buildIdleReel() {
@@ -339,7 +407,9 @@
         });
         saveAndSync(fresh);
         renderInventory(fresh.inventory);
-        pushToLeaderboard(currentUser, fresh.inventory);
+        if (activeProfileKey() === 'solo') {
+          pushToLeaderboard(currentUser, fresh.inventory);
+        }
 
         // Resultado principal: la de mayor rareza. Debajo: el resto de lo que ha salido.
         const others = rewards.slice();
@@ -361,9 +431,11 @@
     });
 
     function showAccountScreen() {
+      const users = UserStore.load();
+      const full = users[currentUser] || {};
       const data = getCurrentUserData();
       document.getElementById('account-user').value = currentUser;
-      document.getElementById('account-email').value = data.email;
+      document.getElementById('account-email').value = full.email || '';
       document.getElementById('account-pass').value = '';
       document.getElementById('account-error').style.display = 'none';
       document.getElementById('account-success').style.display = 'none';
