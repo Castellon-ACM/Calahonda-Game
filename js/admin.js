@@ -1,5 +1,8 @@
 // =====================================================================
 //  PANEL DE ADMINISTRACIÓN — admincaste / papaplaya
+//  NOTA: el admin gestiona monedas/inventario del perfil "solo" (cuenta
+//  principal fuera de grupos) de cada jugador. Los perfiles de grupo
+//  tienen su propia economía independiente y no se gestionan aquí todavía.
 // =====================================================================
 
 const ADMIN_USER = 'admincaste';
@@ -67,7 +70,7 @@ const ADMIN_PASS_HASH = '1a61216fd581cef1c29877f675e7e2839ba0e91afe475b1b8038461
 
             <!-- Dar / quitar monedas -->
             <div style="margin-bottom:14px">
-              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas</div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:6px">Dar / quitar monedas <span style="color:#555">(cuenta principal, sin grupo)</span></div>
               <input type="number" id="admin-coins-input" placeholder="cantidad de monedas" style="width:100%;box-sizing:border-box;background:#0d0a05;border:1px solid #333;color:#fff;border-radius:8px;padding:10px;font-size:14px;margin-bottom:8px">
               <button type="button" class="btn" id="admin-give-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;min-width:0">✅ Dar monedas</button>
               <button type="button" class="btn logout-btn" id="admin-take-coins-btn" style="width:100%;box-sizing:border-box;padding:12px;font-size:14px;white-space:nowrap;overflow:hidden;min-width:0">❌ Quitar monedas</button>
@@ -81,7 +84,7 @@ const ADMIN_PASS_HASH = '1a61216fd581cef1c29877f675e7e2839ba0e91afe475b1b8038461
             </div>
 
             <!-- Inventario -->
-            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Inventario</div>
+            <div style="color:#aaa;font-size:12px;margin-bottom:6px">Inventario (cuenta principal)</div>
             <div id="admin-modal-inventory" style="font-size:13px;color:#ccc;background:#0d0a05;border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;margin-bottom:14px"></div>
 
             <!-- Acciones peligrosas -->
@@ -194,20 +197,22 @@ function adminShowAnnMsg(text, ok) {
 }
 
 // ── Cargar TODOS los usuarios (Firestore + localStorage) ─────────────
+// Se muestra siempre el perfil "solo" (cuenta principal fuera de grupos).
 async function adminLoadAllUsers() {
   const localUsers = UserStore.load();
   const merged = {};
 
   Object.keys(localUsers).forEach(function (u) {
     const d = localUsers[u];
+    const solo = (d.profiles && d.profiles.solo) || {};
     merged[u] = {
-      coins: d.coins || 0,
-      inventory: d.inventory || {},
+      coins: solo.coins || 0,
+      inventory: solo.inventory || {},
       email: d.email || '',
       banned: d.banned || false,
       password: d.password || '',
       source: 'local',
-      value: computeCollectionValue(d.inventory || {})
+      value: computeCollectionValue(solo.inventory || {})
     };
   });
 
@@ -225,7 +230,7 @@ async function adminLoadAllUsers() {
           if (d.banned) merged[u].banned = true;
         } else {
           merged[u] = {
-            coins: d.coins || 0,
+            coins: 0,
             inventory: d.inventory || {},
             email: d.email || '',
             banned: d.banned || false,
@@ -242,21 +247,22 @@ async function adminLoadAllUsers() {
           const d = doc.data();
           const u = doc.id;
           if (!u) return;
+          const solo = (d.profiles && d.profiles.solo) || {};
           if (merged[u]) {
-            if (d.coins !== undefined) merged[u].coins = d.coins;
+            if (solo.coins !== undefined) merged[u].coins = solo.coins;
             if (d.email) merged[u].email = d.email;
             if (d.banned) merged[u].banned = d.banned;
-            if (d.inventory) merged[u].inventory = d.inventory;
+            if (solo.inventory) merged[u].inventory = solo.inventory;
             merged[u].source = 'local+firestore';
           } else {
             merged[u] = {
-              coins: d.coins || 0,
-              inventory: d.inventory || {},
+              coins: solo.coins || 0,
+              inventory: solo.inventory || {},
               email: d.email || '',
               banned: d.banned || false,
               password: '',
               source: 'firestore',
-              value: computeCollectionValue(d.inventory || {})
+              value: computeCollectionValue(solo.inventory || {})
             };
           }
         });
@@ -378,15 +384,17 @@ function adminOpenUserModal(username) {
   document.getElementById('admin-user-modal').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── Persistir cambios: local + Firestore ─────────────────────────────
+// ── Persistir cambios: local + Firestore (perfil "solo") ─────────────
 async function adminPersistUser(username) {
   const u = adminAllUsers[username];
   if (!u) return;
 
   const localUsers = UserStore.load();
   if (localUsers[username]) {
-    localUsers[username].coins = u.coins;
-    if (u.inventory) localUsers[username].inventory = u.inventory;
+    if (!localUsers[username].profiles) localUsers[username].profiles = {};
+    if (!localUsers[username].profiles.solo) localUsers[username].profiles.solo = {};
+    localUsers[username].profiles.solo.coins = u.coins;
+    if (u.inventory) localUsers[username].profiles.solo.inventory = u.inventory;
     if (u.banned !== undefined) localUsers[username].banned = u.banned;
     UserStore.save(localUsers);
   }
@@ -397,17 +405,22 @@ async function adminPersistUser(username) {
         username: username,
         inventory: u.inventory || {},
         value: computeCollectionValue(u.inventory || {}),
-        coins: u.coins || 0,
         banned: u.banned || false,
         updatedAt: Date.now()
       }, { merge: true });
 
       await db.collection('users').doc(username).set({
-        coins: u.coins || 0,
-        inventory: u.inventory || {},
         email: u.email || '',
         banned: u.banned || false,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        profiles: {
+          solo: {
+            coins: u.coins || 0,
+            inventory: u.inventory || {},
+            value: computeCollectionValue(u.inventory || {}),
+            updatedAt: Date.now()
+          }
+        }
       }, { merge: true });
     } catch (e) {
       console.warn('No se pudo persistir en Firestore:', e);
@@ -415,7 +428,7 @@ async function adminPersistUser(username) {
   }
 }
 
-// Ajusta las monedas de un jugador de forma ATÓMICA y fiable:
+// Ajusta las monedas del perfil "solo" de un jugador de forma ATÓMICA y fiable:
 // - Lee el saldo REAL desde Firestore justo en ese instante (no un valor
 //   cacheado que pudiera estar desactualizado si el jugador jugó mientras tanto).
 // - Solo confirma éxito si el guardado en Firestore se ha hecho de verdad.
@@ -429,15 +442,18 @@ async function adminAdjustCoins(username, delta) {
     let newCoins = null;
     await db.runTransaction(async function (tx) {
       const doc = await tx.get(ref);
-      const current = doc.exists ? (doc.data().coins || 0) : 0;
+      const d = doc.exists ? doc.data() : {};
+      const current = (d.profiles && d.profiles.solo && d.profiles.solo.coins) || 0;
       newCoins = Math.max(0, current + delta);
-      tx.set(ref, { coins: newCoins, updatedAt: Date.now() }, { merge: true });
+      tx.set(ref, { profiles: { solo: { coins: newCoins, updatedAt: Date.now() } }, updatedAt: Date.now() }, { merge: true });
     });
 
     // Reflejar también en localStorage si el jugador está registrado en este dispositivo
     const localUsers = UserStore.load();
     if (localUsers[username]) {
-      localUsers[username].coins = newCoins;
+      if (!localUsers[username].profiles) localUsers[username].profiles = {};
+      if (!localUsers[username].profiles.solo) localUsers[username].profiles.solo = {};
+      localUsers[username].profiles.solo.coins = newCoins;
       UserStore.save(localUsers);
     }
     if (adminAllUsers[username]) adminAllUsers[username].coins = newCoins;
@@ -510,7 +526,10 @@ async function adminGiftAll(amount) {
   } else {
     const localUsers = UserStore.load();
     usernames.forEach(function (u) {
-      if (localUsers[u]) { localUsers[u].coins = (localUsers[u].coins || 0) + amount; ok++; }
+      if (localUsers[u] && localUsers[u].profiles && localUsers[u].profiles.solo) {
+        localUsers[u].profiles.solo.coins = (localUsers[u].profiles.solo.coins || 0) + amount;
+        ok++;
+      }
     });
     UserStore.save(localUsers);
   }
@@ -530,6 +549,8 @@ async function adminGiftAll(amount) {
 }
 
 // ── Comprobar regalo pendiente del admin ──────────────────────────────
+// El regalo del admin siempre se suma al perfil ACTIVO del jugador en ese
+// momento (con el que esté jugando cuando lo recibe).
 async function checkAdminGift(username) {
   if (!username || typeof db === 'undefined' || !db) return;
   try {
@@ -541,7 +562,10 @@ async function checkAdminGift(username) {
 
     const users = UserStore.load();
     if (users[username]) {
-      users[username].coins = (users[username].coins || 0) + amount;
+      const full = ensureUserDefaults(username, users[username]);
+      const key = full.activeGroup || 'solo';
+      full.profiles[key].coins = (full.profiles[key].coins || 0) + amount;
+      users[username] = full;
       UserStore.save(users);
     }
 
@@ -550,11 +574,13 @@ async function checkAdminGift(username) {
     const appScreen = document.getElementById('app-screen');
     if (!appScreen || appScreen.classList.contains('hidden')) return;
 
+    const key = (users[username].activeGroup || 'solo');
+    const profile = users[username].profiles[key];
     const balanceEl = document.getElementById('balance-amount');
-    if (balanceEl && users[username]) balanceEl.textContent = users[username].coins;
+    if (balanceEl && profile) balanceEl.textContent = profile.coins;
 
-    if (typeof pushUserData === 'function' && users[username]) {
-      pushUserData(username, users[username]);
+    if (typeof pushUserData === 'function' && profile) {
+      pushUserData(username, profile);
     }
 
     document.getElementById('admin-gift-popup-text').textContent =
