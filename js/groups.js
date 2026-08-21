@@ -18,6 +18,24 @@ function groupMsg(text, ok, elId) {
   el.style.color = ok ? '#8fd17c' : '#ff8f8f';
 }
 
+// Guarda en caché local el nombre de un grupo (para no tener que mostrar
+// nunca el código en pantalla, solo como dato para invitar a gente).
+function cacheGroupName(code, name) {
+  if (!code || !name) return;
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  if (!full.groupNames) full.groupNames = {};
+  full.groupNames[code] = name;
+  users[currentUser] = full;
+  UserStore.save(users);
+}
+
+function groupDisplayName(code) {
+  const users = UserStore.load();
+  const full = ensureUserDefaults(currentUser, users[currentUser]);
+  return (full.groupNames && full.groupNames[code]) || null;
+}
+
 // ── Gestión local de la lista de grupos + grupo activo ────────────────
 async function addGroupMembership(code) {
   const users = UserStore.load();
@@ -52,6 +70,7 @@ async function setActiveGroup(code) {
   await pushUserData(currentUser, users[currentUser].profiles[key]);
   if (typeof renderGame === 'function') renderGame();
   if (typeof updateAllBalances === 'function') updateAllBalances(getCurrentUserData().coins);
+  updateActiveProfileBadge();
 }
 
 // ── Crear / unirse / salir ─────────────────────────────────────────────
@@ -77,9 +96,10 @@ async function createGroup(msgElId) {
       members: [currentUser],
       createdAt: Date.now()
     });
+    cacheGroupName(code, name);
     await addGroupMembership(code);
     await setActiveGroup(code);
-    groupMsg('✅ Grupo creado. ¡Comparte el código ' + code + ' con tus amigos!', true, msgElId);
+    groupMsg('✅ "' + name + '" creado. ¡Comparte el código ' + code + ' con tus amigos!', true, msgElId);
     renderMyGroupsList();
     renderGroupPanel();
   } catch (e) {
@@ -102,10 +122,12 @@ async function joinGroup(inputElId, msgElId) {
     const doc = await ref.get();
     if (!doc.exists) { groupMsg('Ese código no existe', false, msgElId); return; }
 
+    const groupName = doc.data().name;
     await ref.set({ members: firebase.firestore.FieldValue.arrayUnion(currentUser) }, { merge: true });
+    cacheGroupName(code, groupName);
     await addGroupMembership(code);
     await setActiveGroup(code);
-    groupMsg('✅ Te has unido a "' + doc.data().name + '"', true, msgElId);
+    groupMsg('✅ Te has unido a "' + groupName + '"', true, msgElId);
     input.value = '';
     renderMyGroupsList();
     renderGroupPanel();
@@ -131,6 +153,7 @@ async function leaveGroupByCode(code, msgElId) {
   groupMsg('Has salido del grupo', true, msgElId);
   renderMyGroupsList();
   renderGroupPanel();
+  updateActiveProfileBadge();
 }
 
 // ── Pantalla "Mis grupos" (desde el menú hamburguesa) ──────────────────
@@ -163,10 +186,11 @@ async function renderMyGroupsList() {
   } else {
     if (!firebaseReady || !db) {
       groups.forEach(function (code) {
+        const cachedName = (full.groupNames && full.groupNames[code]) || code;
         rows.push(
           '<div class="poker-table-row mygroups-row" data-code="' + code + '">' +
             '<div class="poker-table-row-main">' +
-              '<div class="poker-table-row-name">👥 ' + code + '</div>' +
+              '<div class="poker-table-row-name">👥 ' + cachedName + '</div>' +
               '<div class="poker-table-row-meta">Sin conexión</div>' +
             '</div>' +
             (activeGroup === code ? '<div class="poker-table-row-players">▶ Activo</div>' : '') +
@@ -180,6 +204,7 @@ async function renderMyGroupsList() {
         docs.forEach(function (doc, i) {
           const code = groups[i];
           const name = doc.exists ? doc.data().name : '(grupo eliminado)';
+          if (doc.exists) cacheGroupName(code, name);
           const memberCount = doc.exists ? (doc.data().members || []).length : 0;
           rows.push(
             '<div class="poker-table-row mygroups-row" data-code="' + code + '">' +
@@ -239,7 +264,7 @@ async function renderGroupPanel() {
   listEl.innerHTML = '<div class="inventory-empty">Cargando...</div>';
 
   if (!firebaseReady || !db) {
-    document.getElementById('group-name').textContent = '👥 Grupo';
+    document.getElementById('group-name').textContent = '👥 ' + (groupDisplayName(full.activeGroup) || 'Grupo');
     document.getElementById('group-code-display').textContent = full.activeGroup;
     listEl.innerHTML = '<div class="inventory-empty">Sin conexión</div>';
     return;
@@ -253,6 +278,7 @@ async function renderGroupPanel() {
       return;
     }
     const group = groupDoc.data();
+    cacheGroupName(group.code, group.name);
     document.getElementById('group-name').textContent = '👥 ' + group.name;
     document.getElementById('group-code-display').textContent = group.code;
 
@@ -292,13 +318,35 @@ async function renderGroupPanel() {
   }
 }
 
-// ── Insignia con el nombre del perfil activo (junto al saldo) ─────────
+// ── Insignia con el NOMBRE (nunca el código) del perfil activo ────────
 function updateActiveProfileBadge() {
   const badge = document.getElementById('active-profile-badge');
   if (!badge) return;
   const users = UserStore.load();
   const full = ensureUserDefaults(currentUser, users[currentUser]);
-  badge.textContent = full.activeGroup ? ('👥 ' + full.activeGroup) : '🏠 Solo';
+
+  if (!full.activeGroup) {
+    badge.textContent = '🏠 Solo';
+    return;
+  }
+
+  const cached = groupDisplayName(full.activeGroup);
+  if (cached) {
+    badge.textContent = '👥 ' + cached;
+    return;
+  }
+
+  // Todavía no tenemos el nombre en caché (p.ej. primera vez en otro
+  // dispositivo): mostramos algo neutro y lo buscamos en segundo plano.
+  badge.textContent = '👥 Grupo';
+  if (firebaseReady && db) {
+    db.collection('groups').doc(full.activeGroup).get().then(function (doc) {
+      if (doc.exists) {
+        cacheGroupName(full.activeGroup, doc.data().name);
+        badge.textContent = '👥 ' + doc.data().name;
+      }
+    }).catch(function () {});
+  }
 }
 
 // ── Eventos ─────────────────────────────────────────────────────────
